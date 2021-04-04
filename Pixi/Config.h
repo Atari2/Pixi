@@ -138,6 +138,7 @@ struct PixiConfig {
 	}
 
 	void parse_cmd_line_args(int argc, char* argv[]);
+	void correct_paths();
 	bool set_path(Iter& iter, Iter& end, std::string_view pre, PathType type);
 	bool set_ext(Iter& iter, Iter& end, std::string_view pre, ExtType type);
 	void print_help();

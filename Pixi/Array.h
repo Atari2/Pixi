@@ -4,6 +4,58 @@
 #include <type_traits>
 #include "Util.h"
 
+template <typename T, typename = std::enable_if_t<sizeof(T) == 1>>
+class ByteIterator {
+	T* m_current;
+public:
+	ByteIterator(T* begin) : m_current(begin) {
+
+	}
+
+	T& operator*() {
+		return *m_current;
+	}
+
+	ByteIterator<T> operator++(int) {
+		m_current++;
+		return *this;
+	}
+
+	ByteIterator<T>& operator++() {
+		++m_current;
+		return *this;
+	}
+
+	bool operator==(const ByteIterator<T>& rhs) const { return m_current == rhs.m_current; }
+	bool operator!=(const ByteIterator<T>& rhs) const { return m_current != rhs.m_current; }
+};
+
+template <typename T, typename = std::enable_if_t<sizeof(T) == 1>>
+class ConstByteIterator {
+	T const* m_current;
+
+public:
+	ConstByteIterator(T* begin) : m_current(begin) {
+	}
+
+	const T& operator*() const {
+		return *m_current;
+	}
+	
+	ConstByteIterator<T> operator++(int) {
+		m_current++;
+		return *this;
+	}
+
+	ConstByteIterator<T>& operator++() {
+		++m_current;
+		return *this;
+	}
+
+	bool operator==(const ConstByteIterator<T>& rhs) const { return m_current == rhs.m_current; }
+	bool operator!=(const ConstByteIterator<T>& rhs) const { return m_current != rhs.m_current; }
+};
+
 template <typename T, size_t S, typename = std::enable_if_t<sizeof(T) == 1>>
 class ByteArray {
 	T* m_start;
@@ -37,16 +89,32 @@ public:
 
 	constexpr T at(size_t index) const {
 		if (index >= size()) {
-			pixi_error("Trying to access array of size {} with index of size {}\n", size(), index);
+			ErrorState::pixi_error("Trying to access array of size {} with index of size {}\n", size(), index);
 		}
 		return m_start[index];
 	}
 
 	T& at(size_t index) {
 		if (index >= size()) {
-			pixi_error("Trying to access array of size {} with index of size {}\n", size(), index);
+			ErrorState::pixi_error("Trying to access array of size {} with index of size {}\n", size(), index);
 		}
 		return m_start[index];
+	}
+
+	ConstByteIterator<T> cbegin() const {
+		return { m_start };
+	}
+
+	ConstByteIterator<T> cend() const {
+		return { m_start + m_size };
+	}
+
+	ByteIterator<T> begin() {
+		return { m_start };
+	}
+
+	ByteIterator<T> end() {
+		return { m_start + m_size };
 	}
 
 	constexpr T* start() {
@@ -115,8 +183,16 @@ public:
 
 	constexpr T at(size_t index) const {
 		if (index >= size) {
-			pixi_error("Trying to access array of size {} with index of size {}\n", size, index);
+			ErrorState::pixi_error("Trying to access array of size {} with index of size {}\n", size, index);
 		}
 		return ptr[index];
+	}
+
+	const ConstByteIterator<T> cbegin() const {
+		return { ptr };
+	}
+
+	const ConstByteIterator<T> cend() const {
+		return { ptr + size };
 	}
 };

@@ -1,7 +1,5 @@
 #include "Array.h"
-#include "Util.h"
-#include <string>
-#include <array>
+#include "Config.h"
 
 enum class MapperType : int {
 	LoRom, 
@@ -35,8 +33,10 @@ public:
 	void write_snes(size_t address, const uint8_t* data, size_t len);
 	void write_snes(size_t address, const std::vector<uint8_t>& data);
 	uint8_t at_snes(size_t address);
+	int pointer_at_snes(size_t address);
 	uint8_t at(size_t offset);
 	size_t pc_to_snes(size_t address, bool header = true);
 	size_t snes_to_pc(size_t address, bool header = true);
 	void close();
+	void run_checks();
 };

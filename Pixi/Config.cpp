@@ -1,7 +1,7 @@
 #include "Config.h"
 
 const std::string& PixiConfig::require_next(Iter& iter, Iter& end) {
-	if (iter + 1 == end) pixi_error("Requiring next parameter for {} failed\n", *iter);
+	if (iter + 1 == end) ErrorState::pixi_error("Requiring next parameter for {} failed\n", *iter);
 	return *(++iter);
 }
 
@@ -60,6 +60,7 @@ void PixiConfig::parse_cmd_line_args(int argc, char* argv[])
 		else if (arg == "-ext-off") {
 			ExtMod = false;
 		}
+		// TODO: implement pixi
 		else if (arg == "-meimei-a") {
 
 		}
@@ -95,10 +96,27 @@ void PixiConfig::parse_cmd_line_args(int argc, char* argv[])
 				}
 			}
 			if (set) continue;
-			pixi_error("Invalid command line option \"{}\"\n", arg);
+			ErrorState::pixi_error("Invalid command line option \"{}\"\n", arg);
 		}
 	}
 
+}
+
+void PixiConfig::correct_paths() {
+	for (int i = 0; i < FromEnum(PathType::SIZE); i++) {
+		if (i == FromEnum(PathType::List))
+			set_paths_relative_to(m_Paths[i], RomName);
+		else
+			set_paths_relative_to(m_Paths[i], PixiExe);
+		ErrorState::debug("Extensions[{}] = {}\n", i, m_Paths[i]);
+	}
+	AsmDir = m_Paths[FromEnum(PathType::Asm)];
+	AsmDirPath = cleanPathTrail(AsmDir);
+
+	for (int i = 0; i < FromEnum(ExtType::SIZE); i++) {
+		set_paths_relative_to(m_Extensions[i], RomName);
+		ErrorState::debug("Extensions[{}] = {}\n", i, m_Extensions[i]);
+	}
 }
 
 void PixiConfig::print_help()

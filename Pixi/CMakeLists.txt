@@ -34,6 +34,7 @@ list(
 	"${CMAKE_CURRENT_SOURCE_DIR}/fmt/fmt/core.h"
 	"${CMAKE_CURRENT_SOURCE_DIR}/fmt/fmt/format.h"
 	"${CMAKE_CURRENT_SOURCE_DIR}/fmt/fmt/format-inl.h"
+	"${CMAKE_CURRENT_SOURCE_DIR}/fmt/fmt/color.h"
 	"${CMAKE_CURRENT_SOURCE_DIR}/fmt/format.cc"
 )
 add_executable (Pixi ${PIXI_SOURCE_FILES})
@@ -41,6 +42,8 @@ if (CMAKE_COMPILER_IS_GNUCXX)
 	if (CMAKE_BUILD_TYPE STREQUAL "Debug")
 		message(STATUS "Building debug mode")
 		target_compile_definitions(Pixi PUBLIC DEBUG)
+		target_compile_options(Pixi PRIVATE -fsanitize=address,leak,undefined)
+		target_link_options(Pixi PRIVATE -fsanitize=address,leak,undefined)
 	else()
 		message(STATUS "Building release mode")
 		target_link_options(Pixi PRIVATE -s -Wl,--gc-sections)

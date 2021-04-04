@@ -1,8 +1,13 @@
 #include "Util.h"
 
+#ifdef WIN32
 void double_click_exit() {
-	getc(stdin);
+    puts("Press any key to exit...");
+    int c;
+    while ((c = getchar()) != '\n' && c != EOF) {}
+    getc(stdin);
 }
+#endif
 
 void wait_before_exit(int arguments)
 {
@@ -31,7 +36,7 @@ std::string ask(const char* prompt) {
 FILE* fileopen(const char* filename, const char* mode) {
 	FILE* fp = fopen(filename, mode);
 	if (fp == nullptr) {
-		pixi_error("Couldn't open {} in mode {}\n", filename, mode);
+		ErrorState::pixi_error("Couldn't open {} in mode {}\n", filename, mode);
 	}
 	return fp;
 }
@@ -50,16 +55,14 @@ std::string cleanPathTrail(std::string path) {
     return path;
 }
 
-void set_paths_relative_to(std::string& path, const char* arg0) {
+void set_paths_relative_to(std::string& path, std::string_view arg0) {
 
     if (path.empty())
         return;
 
     std::filesystem::path absBasePath(std::filesystem::absolute(arg0));
     absBasePath.remove_filename();
-#ifdef DEBUGMSG
-    debug_print("Absolute base path: %s ", absBasePath.generic_string().c_str());
-#endif
+    ErrorState::debug("Absolute base path: {} ", absBasePath.generic_string());
     std::filesystem::path filePath(path);
     std::string newPath{};
     if (filePath.is_relative()) {
@@ -68,10 +71,7 @@ void set_paths_relative_to(std::string& path, const char* arg0) {
     else {
         newPath = filePath.generic_string();
     }
-#ifdef DEBUGMSG
-    debug_print("%s\n", newPath.c_str());
-#endif
-
+    ErrorState::debug("{}\n", newPath);
     if (std::filesystem::is_directory(newPath) && newPath.back() != '/') {
         path = newPath + "/";
     }

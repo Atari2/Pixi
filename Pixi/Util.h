@@ -1,32 +1,63 @@
 #ifndef UTIL_INCLUDED_ONCE
 #define UTIL_INCLUDED_ONCE
 #ifdef WIN32
+// there is a stupid max define in windows.h that causes a compilation error
+// it's guarded by a #ifndef NOMINMAX, so I define it and away it goes...
+#define NOMINMAX 1
 #include <windows.h>
-#undef max
 #endif
 #include <cstdio>
 #include "fmt/fmt/format.h"
+#include "fmt/fmt/color.h"
+#include "asar/asardll.h"
 #include <filesystem>
 
-template <typename ...Args>
-void pixi_error(const char* format, Args... args) {
-	fputs("[ Error ] ", stderr);
-	fmt::print(stderr, format, args...);
-	exit(1);
-}
+class ErrorState {
+	inline static bool asar_inited = false;
+public:
 
-template <typename ...Args>
-void pixi_warning(const char* format, Args... args) {
-	fputs("[ Warning ] ", stderr);
-	fmt::print(stderr, format, args...);
-}
+	static bool asar_init_wrap() {
+		asar_inited = asar_init();
+		return asar_inited;
+	}
+	template <typename ...Args>
+	static void pixi_error(const char* format, Args... args) {
+#ifndef WIN32
+		fmt::print(fg(fmt::color::crimson) | fmt::emphasis::bold, "[ Error ] ");
+		fmt::print(fg(fmt::color::crimson) | fmt::emphasis::bold, format, args...);
+#else
+		SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), FOREGROUND_RED | FOREGROUND_INTENSITY);
+		fmt::print("[ Error ] ");
+		fmt::print(format, args...);
+		SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), FOREGROUND_BLUE | FOREGROUND_GREEN | FOREGROUND_RED);
 
-template <typename ...Args>
-void debug(const char* format, Args... args) {
-#ifdef DEBUG
-	fmt::print(format, args...);
 #endif
-}
+		if (asar_inited)
+			asar_close();
+		exit(1);
+	}
+
+	template <typename ...Args>
+	static void pixi_warning(const char* format, Args... args) {
+#ifndef WIN32
+		fmt::print(fg(fmt::color::yellow) | fmt::emphasis::bold, "[ Warning ] ");
+		fmt::print(fg(fmt::color::yellow) | fmt::emphasis::bold, format, args...);
+#else
+		SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_INTENSITY);
+		fmt::print("[ Warning ] ");
+		fmt::print(format, args...);
+		SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), FOREGROUND_BLUE | FOREGROUND_GREEN | FOREGROUND_RED);
+#endif
+	}
+
+	template <typename ...Args>
+	static void debug(const char* format, Args... args) {
+#ifdef DEBUG
+		fmt::print(format, args...);
+#endif
+	}
+
+};
 
 template <typename T>
 constexpr std::underlying_type_t<T> FromEnum(T type) {
@@ -54,6 +85,6 @@ std::string ask(const char* prompt);
 FILE* fileopen(const char* filename, const char* mode);
 bool nameEndWithAsmExtension(std::string_view name);
 std::string cleanPathTrail(std::string path);
-void set_paths_relative_to(std::string& path, const char* arg0);
+void set_paths_relative_to(std::string& path, std::string_view arg0);
 std::string append_to_dir(std::string_view src, std::string_view file);
 #endif

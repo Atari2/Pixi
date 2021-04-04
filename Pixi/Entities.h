@@ -7,7 +7,6 @@
 #include "json/json.hpp"
 #include "base64/base64.h"
 #include "JsonData.h"
-#include "Util.h"
 
 struct Pointer {
 	static constexpr uint8_t RTL_LOW = 0x21;

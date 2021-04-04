@@ -2,23 +2,23 @@
 
 auto cfg_type(const std::string& line, Sprite& spr) {
     spr.table.type = (uint8_t)std::stoi(line, nullptr, 16);
-};
+}
 
 auto cfg_actlike(const std::string& line, Sprite& spr) {
     spr.table.actlike = (uint8_t)std::stoi(line, nullptr, 16);
-};
+}
 
 auto cfg_tweak(const std::string& line, Sprite& spr) {
     sscanf(line.c_str(), "%hhx %hhx %hhx %hhx %hhx %hhx", &spr.table.tweak[0], &spr.table.tweak[1], &spr.table.tweak[2],
         &spr.table.tweak[3], &spr.table.tweak[4], &spr.table.tweak[5]);
-};
+}
 
 auto cfg_prop(const std::string& line, Sprite& spr) {
     sscanf(line.c_str(), "%hhx %hhx", &spr.table.extra[0], &spr.table.extra[1]);
-};
+}
 auto cfg_asm(const std::string& line, Sprite& spr) {
     spr.asm_file = append_to_dir(spr.cfg_file, line);
-};
+}
 
 std::pair<int, int> read_byte_count(const std::string& line) {
     size_t pos = line.find(':');
@@ -49,9 +49,9 @@ auto cfg_extra(const std::string& line, Sprite& spr) {
         spr.extra_byte_count = values.second;
     }
     catch (const std::invalid_argument& e) {
-        pixi_error("While reading cfg file {}: {}\n", spr.cfg_file, e.what());
+        ErrorState::pixi_error("While reading cfg file {}: {}\n", spr.cfg_file, e.what());
     }
-};
+}
 
 Pointer::Pointer(size_t snes)
 {
@@ -113,7 +113,7 @@ void Sprite::parse() {
         from_json();
     }
     else {
-        pixi_error("[ Sprite parsing error ] File extension not one of .cfg or .json, it was {}\n", cfg_file);
+        ErrorState::pixi_error("[ Sprite parsing error ] File extension of {} not one of .cfg or .json, it was {}\n", cfg_file, extension);
     }
 }
 
@@ -123,18 +123,18 @@ void Sprite::from_json()
     try {
         std::ifstream instr(cfg_file.c_str());
         if (!instr) {
-            pixi_error("\"{}\" wasn't found, make sure to have the correct filenames in your list file\n", cfg_file);
+            ErrorState::pixi_error("\"{}\" wasn't found, make sure to have the correct filenames in your list file\n", cfg_file);
         }
         instr >> j;
     }
     catch (const std::exception& e) {
         if (strstr(e.what(), "parse error") != nullptr) {
-            pixi_error("An error was encountered while parsing {}, please make sure that the json file has the correct "
+            ErrorState::pixi_error("An error was encountered while parsing {}, please make sure that the json file has the correct "
                 "format. (error: {})",
                 cfg_file, e.what());
         }
         else {
-            pixi_error("An unknown error has occurred while parsing {}, please contact the developer providing a "
+            ErrorState::pixi_error("An unknown error has occurred while parsing {}, please contact the developer providing a "
                 "screenshot of this error: {}\n",
                 cfg_file, e.what());
         }
@@ -211,7 +211,7 @@ void Sprite::from_json()
         }
         collections.push_back(coll);
     }
-    debug("Parsed {}\n", cfg_file);
+    ErrorState::debug("Parsed {}\n", cfg_file);
 }
 
 void Sprite::from_cfg() {
@@ -227,5 +227,5 @@ void Sprite::from_cfg() {
         handlers[nline](current_line, *this);
         nline++;
     }
-    debug("Parsed {}, {} lines\n", cfg_file, nline - 1);
+    ErrorState::debug("Parsed {}, {} lines\n", cfg_file, nline - 1);
 }
