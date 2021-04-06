@@ -10,7 +10,7 @@ inline constexpr std::array<std::string_view, 3> StringMappers{ "LoRom", "SA1Rom
 
 constexpr std::string_view MapperToString(MapperType mapper) {
 	return StringMappers[FromEnum(mapper)];
-};
+}
 
 class Rom {
 	inline static constexpr size_t MAX_ROM_SIZE = 16 * 1024 * 1024;

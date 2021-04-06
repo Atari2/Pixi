@@ -1,10 +1,7 @@
-#ifndef ARRAY_INCLUDE_ONCE
-#define ARRAY_INCLUDE_ONCE
 #include <cstring>
 #include <cstdint>
 #include <cstdio>
 #include <type_traits>
-#include "Util.h"
 
 template <typename T, typename = std::enable_if_t<sizeof(T) == 1>>
 class ByteIterator {
@@ -102,14 +99,16 @@ public:
 
 	constexpr T at(size_t index) const {
 		if (index >= size()) {
-			ErrorState::pixi_error("Trying to access array of size {} with index of size {}\n", size(), index);
+			printf("[ ARRAY ] Trying to access array of size %zd with index of size %zd\n", size(), index);
+			exit(-1);
 		}
 		return m_start[index];
 	}
 
 	T& at(size_t index) {
 		if (index >= size()) {
-			ErrorState::pixi_error("Trying to access array of size {} with index of size {}\n", size(), index);
+			printf("[ ARRAY ] Trying to access array of size %zd with index of size %zd\n", size(), index);
+			exit(-1);
 		}
 		return m_start[index];
 	}
@@ -196,7 +195,8 @@ public:
 
 	constexpr T at(size_t index) const {
 		if (index >= size) {
-			ErrorState::pixi_error("Trying to access array of size {} with index of size {}\n", size, index);
+			printf("[ ARRAY ] Trying to access array of size %zd with index of size %zd\n", size, index);
+			exit(-1);
 		}
 		return ptr[index];
 	}
@@ -209,4 +209,3 @@ public:
 		return { ptr + size };
 	}
 };
-#endif

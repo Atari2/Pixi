@@ -1,5 +1,3 @@
-#ifndef UTIL_INCLUDED_ONCE
-#define UTIL_INCLUDED_ONCE
 #ifdef WIN32
 // there is a stupid max define in windows.h that causes a compilation error
 // it's guarded by a #ifndef NOMINMAX, so I define it and away it goes...
@@ -12,6 +10,16 @@
 #include "asar/asardll.h"
 #include "Array.h"
 #include <filesystem>
+
+void wait_before_exit(int arguments);
+std::string ask(const char* prompt);
+FILE* fileopen(const char* filename, const char* mode);
+bool nameEndWithAsmExtension(std::string_view name);
+std::string cleanPathTrail(std::string path);
+void set_paths_relative_to(std::string& path, std::string_view arg0);
+std::string append_to_dir(std::string_view src, std::string_view file);
+std::string escapeDefines(std::string_view path, const char* repl = "\\!");
+
 
 class ErrorState {
 	inline static bool asar_inited = false;
@@ -94,13 +102,3 @@ static inline void trim(std::string& s) {
 	ltrim(s);
 	rtrim(s);
 }
-
-void wait_before_exit(int arguments);
-std::string ask(const char* prompt);
-FILE* fileopen(const char* filename, const char* mode);
-bool nameEndWithAsmExtension(std::string_view name);
-std::string cleanPathTrail(std::string path);
-void set_paths_relative_to(std::string& path, std::string_view arg0);
-std::string append_to_dir(std::string_view src, std::string_view file);
-std::string escapeDefines(std::string_view path, const char* repl = "\\!");
-#endif

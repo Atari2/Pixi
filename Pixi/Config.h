@@ -1,5 +1,3 @@
-#ifndef CONFIG_INCLUDE_ONCE
-#define CONFIG_INCLUDE_ONCE
 #include <algorithm>
 #include <array>
 #include <string>
@@ -91,7 +89,7 @@ struct Extensions {
 };
 
 struct PixiConfig {
-	static constexpr char* TEMP_SPR_FILE = "spr_temp.asm";
+	static constexpr char TEMP_SPR_FILE[13] = "spr_temp.asm";
 	static constexpr int VERSION = 0x32;
 	static constexpr int DEFAULT_ROUTINES = 100;
 	static constexpr int MAX_ROUTINES = 310;
@@ -147,4 +145,3 @@ struct PixiConfig {
 
 	~PixiConfig() = default;
 };
-#endif
