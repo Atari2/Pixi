@@ -10,6 +10,7 @@
 #include "fmt/fmt/format.h"
 #include "fmt/fmt/color.h"
 #include "asar/asardll.h"
+#include "Array.h"
 #include <filesystem>
 
 class ErrorState {
@@ -64,6 +65,20 @@ constexpr std::underlying_type_t<T> FromEnum(T type) {
 	return static_cast<std::underlying_type_t<T>>(type);
 }
 
+template <typename T>
+void write_all(const T& data, const std::string& full_path, size_t size) {
+	FILE* file = fileopen(full_path.c_str(), "wb");
+	if (fwrite(data.ptr_at(0), 1, size, file) != size) {
+		ErrorState::pixi_error("{} couldn't be fully written. Please check file permissions.", full_path);
+	}
+	fclose(file);
+}
+
+template <typename T>
+void write_all(const T& data, const std::string& path, const char* filename, size_t size) {
+	write_all<T>(data, path + filename, size);
+}
+
 // trim from start (in place)
 static inline void ltrim(std::string& s) {
 	s.erase(s.begin(), std::find_if(s.begin(), s.end(), [](auto ch) { return !std::isspace(ch); }));
@@ -87,4 +102,5 @@ bool nameEndWithAsmExtension(std::string_view name);
 std::string cleanPathTrail(std::string path);
 void set_paths_relative_to(std::string& path, std::string_view arg0);
 std::string append_to_dir(std::string_view src, std::string_view file);
+std::string escapeDefines(std::string_view path, const char* repl = "\\!");
 #endif

@@ -99,3 +99,16 @@ std::string append_to_dir(std::string_view src, std::string_view file) {
     std::replace(new_file.begin(), new_file.end(), '\\', '/');
     return new_file;
 }
+
+std::string escapeDefines(std::string_view path, const char* repl) {
+    std::stringstream ss("");
+    for (char c : path) {
+        if (c == '!') {
+            ss << repl;
+        }
+        else {
+            ss << c;
+        }
+    }
+    return ss.str();
+}

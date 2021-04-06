@@ -8,6 +8,14 @@
 #include "base64/base64.h"
 #include "JsonData.h"
 
+enum class ListType : int {
+	Sprite,
+	Extended,
+	Cluster,
+	Overworld,
+	SIZE
+};
+
 struct Pointer {
 	static constexpr uint8_t RTL_LOW = 0x21;
 	static constexpr uint8_t RTL_HIGH = 0x80;
@@ -21,7 +29,7 @@ struct Pointer {
 	Pointer(const Pointer& other) = default;
 	~Pointer() = default;
 
-	bool is_empty() {
+	bool is_empty() const {
 		return lowbyte == RTL_LOW && highbyte == RTL_HIGH && bankbyte == RTL_BANK;
 	}
 
@@ -110,6 +118,14 @@ struct SpriteTable {
 };
 
 struct Sprite {
+	static constexpr bool INVALID = true;
+	static constexpr int MAX_SPRITE_COUNT = 0x2100;
+	static constexpr int SPRITE_COUNT = 0x80;
+	static constexpr int INIT_PTR = 0x01817D;
+	static constexpr int MAIN_PTR = 0x0185CC;
+	static constexpr const char* TEMP_SPR_FILE = "spr_temp.asm";
+
+	bool invalid = false;
 	int line = 0;
 	int number = 0;
 	int level = 0x200;
@@ -128,11 +144,13 @@ struct Sprite {
 	std::vector<Collection> collections{};
 
 	int sprite_type = 0;
-	Sprite(std::string cfgname) : cfg_file(cfgname) {};
+	Sprite() = default;
+	Sprite(bool inv) : invalid(inv) {};
 	~Sprite() = default;
 
 	void print(FILE*);
-	void parse();
-	void from_json();
+	void parse(PixiConfig& cfg);
+	void from_json(PixiConfig& cfg);
 	void from_cfg();
+	void patch(const std::vector<std::string>& extraDefines, Rom& rom, PixiConfig& cfg);
 };

@@ -1,3 +1,5 @@
+#ifndef ARRAY_INCLUDE_ONCE
+#define ARRAY_INCLUDE_ONCE
 #include <cstring>
 #include <cstdint>
 #include <cstdio>
@@ -64,11 +66,22 @@ class ByteArray {
 public:
 	ByteArray() : m_capacity(S) {
 		m_start = new T[S];
+		memset(m_start, 0, m_capacity);
 		m_size = 0;
+	}
+
+	ByteArray(std::initializer_list<T> list) : m_capacity(list.size()) {
+		m_start = new T[S];
+		m_size = m_capacity;
+		std::move(list.begin(), list.end(), start());
 	}
 
 	~ByteArray() {
 		delete[] m_start;
+	}
+
+	void reset() {
+		memset(m_start, 0, m_capacity);
 	}
 
 	T& operator[](size_t index) {
@@ -196,3 +209,4 @@ public:
 		return { ptr + size };
 	}
 };
+#endif

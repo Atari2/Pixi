@@ -17,6 +17,7 @@ list(
 	"${CMAKE_CURRENT_SOURCE_DIR}/Entities.cpp"
 	"${CMAKE_CURRENT_SOURCE_DIR}/base64/base64.cpp"
 	"${CMAKE_CURRENT_SOURCE_DIR}/Config.cpp"
+	"${CMAKE_CURRENT_SOURCE_DIR}/SpritesData.cpp"
 
 	"${CMAKE_CURRENT_SOURCE_DIR}/Pixi.h"
 	"${CMAKE_CURRENT_SOURCE_DIR}/Rom.h"
@@ -27,6 +28,7 @@ list(
 	"${CMAKE_CURRENT_SOURCE_DIR}/JsonData.h"
 	"${CMAKE_CURRENT_SOURCE_DIR}/Entities.h"
 	"${CMAKE_CURRENT_SOURCE_DIR}/base64/base64.h"
+	"${CMAKE_CURRENT_SOURCE_DIR}/SpritesData.h"
 
 	# json library
 	"${CMAKE_CURRENT_SOURCE_DIR}/json/json.hpp"

@@ -1,3 +1,5 @@
+#ifndef CONFIG_INCLUDE_ONCE
+#define CONFIG_INCLUDE_ONCE
 #include <algorithm>
 #include <array>
 #include <string>
@@ -17,17 +19,6 @@ enum class PathType : int {
 };
 
 enum class ExtType : int { Ssc, Mwt, Mw2, S16, SIZE };
-
-struct Debug {
-	bool isOn = false;
-	FILE* output = nullptr;
-
-	template <typename... Args> inline void dprintf(const char* format, Args... args) {
-		if (this->output)
-			fmt::print(this->output, format, args...);
-	}
-
-};
 
 struct Paths {
 	static constexpr int ArrSize = FromEnum(PathType::SIZE);
@@ -100,9 +91,11 @@ struct Extensions {
 };
 
 struct PixiConfig {
+	static constexpr char* TEMP_SPR_FILE = "spr_temp.asm";
 	static constexpr int VERSION = 0x32;
 	static constexpr int DEFAULT_ROUTINES = 100;
 	static constexpr int MAX_ROUTINES = 310;
+	inline static const ByteArray<uint8_t, 4> versionflag { VERSION, 0x00, 0x00, 0x00 };
 	using Iter = std::vector<std::string>::const_iterator;
 	PixiConfig() = default;
 	PixiConfig(int argc, char* argv[]) {
@@ -113,7 +106,6 @@ struct PixiConfig {
 		else
 			parse_cmd_line_args(argc, argv);
 	}
-	Debug m_Debug{};
 	Paths m_Paths{};
 	Extensions m_Extensions{};
 	bool KeepFiles = false;
@@ -122,7 +114,9 @@ struct PixiConfig {
 	bool ExtMod = true;
 	bool DisableMeiMei = false;
 	bool Warnings = false;
+	bool Debug = false;
 	int Routines = 100;
+	std::vector<std::string> WarningList{};
 	std::string PixiExe{};
 	std::string RomName{};
 	std::string AsmDir{};
@@ -139,12 +133,18 @@ struct PixiConfig {
 
 	void parse_cmd_line_args(int argc, char* argv[]);
 	void correct_paths();
+	bool areConfigFlagsToggled();
+	void create_config_file();
+	void create_shared_patch();
+	std::vector<std::string> list_extra_asm(const char* folder);
+	void emit_warnings();
+	void fremove(const std::string& dir, const char* name);
+	void cleanup();
 	bool set_path(Iter& iter, Iter& end, std::string_view pre, PathType type);
 	bool set_ext(Iter& iter, Iter& end, std::string_view pre, ExtType type);
 	void print_help();
 	const std::string& require_next(Iter& iter, Iter& end);
 
-	~PixiConfig() {
-		this->m_Debug.~Debug();
-	}
+	~PixiConfig() = default;
 };
+#endif

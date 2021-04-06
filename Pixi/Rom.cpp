@@ -4,6 +4,7 @@ Rom::Rom(std::string romname) : m_name(romname)
 {
 	m_data.from_file(fileopen(romname.c_str(), "rb"));
 	m_header_offset = m_data.size() & 0x7FFF;
+	m_size = m_data.size() - m_header_offset;
 	if (data()[0x7fd5] == 0x23) {
 		if (data()[0x7fd7] == 0x0D) {
 			m_mapper = MapperType::FullSA1Rom;
@@ -21,11 +22,6 @@ Rom::Rom(std::string romname) : m_name(romname)
 constexpr MapperType Rom::mapper()
 {
 	return m_mapper;
-}
-
-constexpr size_t Rom::size()
-{
-	return m_data.size() - m_header_offset;
 }
 
 const ByteArrayView<uint8_t> Rom::data()
@@ -128,6 +124,35 @@ size_t Rom::snes_to_pc(size_t address, bool header) {
 	}
 
 	return address + (header ? m_header_offset : 0);
+}
+
+void Rom::clean(const PixiConfig& cfg)
+{
+	// TODO : implement clean
+}
+
+bool Rom::patch(const std::string& dir, const std::string& file, PixiConfig& cfg) {
+	std::string path = dir + file;
+	return patch(path, cfg);
+}
+
+bool Rom::patch(const std::string& file, PixiConfig& cfg) {
+	std::string patch_path = std::filesystem::absolute(file).generic_string();
+	if (!asar_patch(patch_path.c_str(), (char*)m_data.ptr_at(m_header_offset), MAX_ROM_SIZE, &size())) {
+		ErrorState::debug("Failure. Try fetch errors:\n");
+		int error_count;
+		auto errors = asar_geterrors(&error_count);
+		fmt::print("An error has been detected:\n");
+		for (int i = 0; i < error_count; i++)
+			fmt::print("{}\n", errors[i].fullerrdata);
+		ErrorState::pixi_error("An error was encountered in asar\n");
+	}
+	int warn_count = 0;
+	auto loc_warnings = asar_getwarnings(&warn_count);
+	for (int i = 0; i < warn_count; i++)
+		cfg.WarningList.push_back(loc_warnings[i].fullerrdata);
+	ErrorState::debug("Patching for {} successful\n", file);
+	return true;
 }
 
 void Rom::close()

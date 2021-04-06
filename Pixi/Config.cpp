@@ -36,8 +36,7 @@ void PixiConfig::parse_cmd_line_args(int argc, char* argv[])
 		if (arg == "-h" || arg == "--help")
 			print_help();
 		else if (arg == "-d" || arg == "--debug") {
-			m_Debug.isOn = true;
-			m_Debug.output = stdout;
+			Debug = true;
 		}
 		else if (arg == "-k") {
 			KeepFiles = true;
@@ -60,7 +59,7 @@ void PixiConfig::parse_cmd_line_args(int argc, char* argv[])
 		else if (arg == "-ext-off") {
 			ExtMod = false;
 		}
-		// TODO: implement pixi
+		// TODO: handle meimei command arguments
 		else if (arg == "-meimei-a") {
 
 		}
@@ -108,7 +107,7 @@ void PixiConfig::correct_paths() {
 			set_paths_relative_to(m_Paths[i], RomName);
 		else
 			set_paths_relative_to(m_Paths[i], PixiExe);
-		ErrorState::debug("Extensions[{}] = {}\n", i, m_Paths[i]);
+		ErrorState::debug("Paths[{}] = {}\n", i, m_Paths[i]);
 	}
 	AsmDir = m_Paths[FromEnum(PathType::Asm)];
 	AsmDirPath = cleanPathTrail(AsmDir);
@@ -116,6 +115,147 @@ void PixiConfig::correct_paths() {
 	for (int i = 0; i < FromEnum(ExtType::SIZE); i++) {
 		set_paths_relative_to(m_Extensions[i], RomName);
 		ErrorState::debug("Extensions[{}] = {}\n", i, m_Extensions[i]);
+	}
+}
+
+bool PixiConfig::areConfigFlagsToggled() {
+	return PerLevel || disable255Sprites || true;
+}
+
+void PixiConfig::create_config_file()
+{
+	std::string path = AsmDirPath + "/config.asm";
+	if (areConfigFlagsToggled()) {
+		FILE* config = fileopen(path.c_str(), "w");
+		fmt::print(config, "!PerLevel = {:d}\n", (int)PerLevel);
+		fmt::print(config, "!Disable255SpritesPerLevel = {:d}", (int)disable255Sprites);
+		fclose(config);
+	}
+}
+
+void PixiConfig::create_shared_patch()
+{
+	const std::string& routinepath = m_Paths[PathType::Routines];
+	std::string escapedRoutinepath = escapeDefines(routinepath, R"(\\\!)");
+	FILE* shared_patch = fileopen("shared.asm", "w");
+	fmt::print(shared_patch, "macro include_once(target, base, offset)\n"
+		"	if !<base> != 1\n"
+		"		!<base> = 1\n"
+		"		pushpc\n"
+		"		if read3(<offset>+$03E05C) != $FFFFFF\n"
+		"			<base> = read3(<offset>+$03E05C)\n"
+		"		else\n"
+		"			freecode cleaned\n"
+		"				global #<base>:\n"
+		"				print \"    Routine: <base> inserted at $\",pc\n"
+		"				namespace <base>\n"
+		"				incsrc \"<target>\"\n"
+		"               namespace off\n"
+		"			ORG <offset>+$03E05C\n"
+		"				dl <base>\n"
+		"		endif\n"
+		"		pullpc\n"
+		"	endif\n"
+		"endmacro\n");
+	int routine_count = 0;
+	if (!std::filesystem::exists(cleanPathTrail(m_Paths[PathType::Routines]))) {
+		ErrorState::pixi_error("Couldn't open folder \"{}\" for reading.", routinepath);
+	}
+	try {
+		for (const auto& routine_file : std::filesystem::directory_iterator(routinepath)) {
+			std::string name(routine_file.path().filename().generic_string());
+			if (routine_count > DEFAULT_ROUTINES) {
+				ErrorState::pixi_error("More than 100 routines located. Please remove some. \n");
+			}
+			if (nameEndWithAsmExtension(name)) {
+				name = name.substr(0, name.length() - 4);
+				fmt::print(shared_patch,
+					"!{} = 0\n"
+					"macro {}()\n"
+					"\t%include_once(\"{}{}.asm\", {}, ${:02X})\n"
+					"\tJSL {}\n"
+					"endmacro\n",
+					name, name, escapedRoutinepath, name, name, routine_count * 3,
+					name);
+				routine_count++;
+			}
+		}
+	}
+	catch (const std::filesystem::filesystem_error& err) {
+		ErrorState::pixi_error("Trying to read folder \"{}\" returned \"{}\", aborting insertion\n", routinepath, err.what());
+	}
+	fmt::print("{} Shared routines registered in \"{}\"\n", routine_count, routinepath);
+	fclose(shared_patch);
+}
+
+std::vector<std::string> PixiConfig::list_extra_asm(const char* folder) {
+	std::string path = AsmDirPath + folder;
+	std::vector<std::string> extraAsm{};
+	if (!std::filesystem::exists(cleanPathTrail(path))) {
+		return extraAsm;
+	}
+
+	try {
+		for (auto& file : std::filesystem::directory_iterator(path)) {
+			std::string spath = file.path().generic_string();
+			if (nameEndWithAsmExtension(spath))
+				extraAsm.push_back(spath);
+		}
+	}
+	catch (const std::filesystem::filesystem_error& err) {
+		ErrorState::pixi_error("Trying to read folder \"{}\" returned \"{}\", aborting insertion\n", path, err.what());
+	}
+	if (extraAsm.size() > 0)
+		std::sort(extraAsm.begin(), extraAsm.end());
+	return extraAsm;
+}
+
+void PixiConfig::emit_warnings() {
+	if (!WarningList.empty() && Warnings) {
+		fmt::print("One or more warnings have been detected:\n");
+		for (const std::string& warning : WarningList) {
+			ErrorState::pixi_warning("{}\n", warning);
+		}
+		ErrorState::pixi_warning("Do you want to continue insertion anyway? [Y/n] (Default is yes):\n");
+		char c = (char)getchar();
+		if (tolower(c) == 'y') {
+			ErrorState::pixi_error("Insertion was stopped, press any button to exit...\n");
+		}
+		fflush(stdin);
+	}
+}
+
+void PixiConfig::fremove(const std::string& dir, const char* name) {
+	std::string fullpath = dir + name;
+	remove(fullpath.c_str());
+}
+
+void PixiConfig::cleanup()
+{
+	constexpr int ASM = FromEnum(PathType::Asm);
+	if (!KeepFiles) {
+		fremove(m_Paths[ASM], "_versionflag.bin");
+
+		fremove(m_Paths[ASM], "_DefaultTables.bin");
+		fremove(m_Paths[ASM], "_CustomStatusPtr.bin");
+		if (PerLevel) {
+			fremove(m_Paths[ASM], "_PerLevelLvlPtrs.bin");
+			fremove(m_Paths[ASM], "_PerLevelSprPtrs.bin");
+			fremove(m_Paths[ASM], "_PerLevelT.bin");
+			fremove(m_Paths[ASM], "_PerLevelCustomPtrTable.bin");
+		}
+
+		fremove(m_Paths[ASM], "_ClusterPtr.bin");
+		fremove(m_Paths[ASM], "_ExtendedPtr.bin");
+		fremove(m_Paths[ASM], "_ExtendedCapePtr.bin");
+		// remove("asm/_OverworldMainPtr.bin");
+		// remove("asm/_OverworldInitPtr.bin");
+
+		fremove(m_Paths[ASM], "_CustomSize.bin");
+		remove("shared.asm");
+		remove(TEMP_SPR_FILE);
+
+		fremove(m_Paths[ASM], "_cleanup.asm");
 	}
 }
 
