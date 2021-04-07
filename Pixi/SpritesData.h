@@ -1,4 +1,4 @@
-#include "Entities.h"
+#include "MeiMei/MeiMei.h"
 
 struct PerLevelData {
 	int sprite_ptrs_addr = 0;
@@ -7,11 +7,13 @@ struct PerLevelData {
 	ByteArray<uint8_t, 0x4000> sprite_ptrs{};
 	ByteArray<uint8_t, 0x8000> data{};
 	ByteArray<uint8_t, 0x8000> pls_pointers{};
+	PerLevelData(PerLevelData&& other) = delete;
 };
 
 class SpritesData {
 	using Svect = std::vector<Sprite>;
 private:
+	constexpr static inline auto MAP16_SIZE = 0x3800;
 	Rom& m_rom;
 	Svect m_normal_sprites{};
 	Svect m_cluster_sprites{};
@@ -20,6 +22,7 @@ private:
 	PerLevelData pls_data{};
 	std::array<Svect*, FromEnum(ListType::SIZE)> sprites_list{&m_normal_sprites, &m_cluster_sprites, &m_extended_sprites, &m_ow_sprites};
 	void patch_sprites(const std::vector<std::string>& extraDefines, Svect& sprites, size_t size, PixiConfig& cfg);
+	SpritesData(SpritesData&& other) = delete;
 public:
 	SpritesData(Rom& rom, const PixiConfig& cfg) : m_rom(rom) {
 		m_normal_sprites.reserve(cfg.PerLevel ? Sprite::MAX_SPRITE_COUNT : 0x100);
@@ -33,6 +36,7 @@ public:
 
 	void populate(PixiConfig& cfg);
 	void serialize(const PixiConfig& cfg);
+	void serialize_subfiles(const PixiConfig& cfg, ByteArray<uint8_t, 0x200>& extra_bytes);
 	void write_long_table(Svect::const_iterator spr, const std::string& dir, std::string_view filename);
 	bool is_empty_table(Svect::const_iterator spr, int size);
 	void patch_sprites_wrap(const std::vector<std::string>& extraDefines, PixiConfig& cfg);

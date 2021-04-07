@@ -18,6 +18,12 @@ enum class PathType : int {
 
 enum class ExtType : int { Ssc, Mwt, Mw2, S16, SIZE };
 
+struct MeiMeiConfig {
+	bool always = false;
+	bool debug = false;
+	bool keep = false;
+};
+
 struct Paths {
 	static constexpr int ArrSize = FromEnum(PathType::SIZE);
 	static constexpr std::array<std::string_view, ArrSize> prefixes{ "-l", "-a", "-sp", "-sh", "-g", "-e", "-c", "-r" };
@@ -106,6 +112,7 @@ struct PixiConfig {
 	}
 	Paths m_Paths{};
 	Extensions m_Extensions{};
+	MeiMeiConfig m_meimei{};
 	bool KeepFiles = false;
 	bool PerLevel = false;
 	bool disable255Sprites = false;
@@ -134,6 +141,7 @@ struct PixiConfig {
 	bool areConfigFlagsToggled();
 	void create_config_file();
 	void create_shared_patch();
+	void create_lm_restore();
 	std::vector<std::string> list_extra_asm(const char* folder);
 	void emit_warnings();
 	void fremove(const std::string& dir, const char* name);

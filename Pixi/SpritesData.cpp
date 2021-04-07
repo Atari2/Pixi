@@ -40,7 +40,7 @@ void SpritesData::patch_sprites(const std::vector<std::string>& extraDefines, Sv
 			break;
 		}
 		if (!duplicate)
-			spr.patch(extraDefines, rom(), cfg);
+			rom().patch(spr, extraDefines, cfg);
 
 		if (spr.level < 0x200 && spr.number >= 0xB0 && spr.number < 0xC0) {
 			int pls_lv_addr = pls_data.level_ptrs[spr.level * 2] + (pls_data.level_ptrs[spr.level * 2 + 1] << 8);
@@ -242,10 +242,139 @@ void SpritesData::serialize(const PixiConfig& cfg)
 
 	ErrorState::debug("Binary tables created\n");
 
-	ErrorState::debug("Try create romname files.\n");
-	ByteArray<uint8_t, 0x200> extra_bytes{};
-	// TODO: implement subfiles, ssc, mwt, mw2, s16
+	ByteArray<uint8_t, 0x200> extra_bytes(0x00);
+	serialize_subfiles(cfg, extra_bytes);
 	write_all(extra_bytes, path, "_CustomSize.bin", 0x200);
+}
+
+void SpritesData::serialize_subfiles(const PixiConfig& cfg, ByteArray<uint8_t, 0x200>& extra_bytes) {
+	std::vector<Map16> map{};
+	map.reserve(MAP16_SIZE);
+	ErrorState::debug("Try create romname files.\n");
+	FILE* s16 = open_subfile(cfg.RomName, "s16", "wb");
+	FILE* ssc = open_subfile(cfg.RomName, "ssc", "w");
+	FILE* mwt = open_subfile(cfg.RomName, "mwt", "w");
+	FILE* mw2 = open_subfile(cfg.RomName, "mw2", "wb");
+	ErrorState::debug("Romname files opened.\n");
+
+	if (!cfg.m_Extensions[ExtType::Ssc].empty()) {
+		std::ifstream fin(cfg.m_Extensions[ExtType::Ssc]);
+		std::string line;
+		while (std::getline(fin, line)) {
+			fmt::print(ssc, "{}\n", line);
+		}
+		fin.close();
+	}
+	if (!cfg.m_Extensions[ExtType::Mwt].empty()) {
+		std::ifstream fin(cfg.m_Extensions[ExtType::Mwt]);
+		std::string line;
+		while (std::getline(fin, line)) {
+			fmt::print(mwt, "{}\n", line);
+		}
+		fin.close();
+	}
+	if (!cfg.m_Extensions[ExtType::Mw2].empty()) {
+		FILE* fp = fileopen(cfg.m_Extensions[FromEnum(ExtType::Mw2)].c_str(), "rb");
+		size_t fs_size = filesize(fp);
+		if (fs_size == 0) {
+			// if size == 0, it means that the file is empty, so we just append the 0x00 and go on with our lives
+			fputc(0x00, mw2);
+		}
+		else {
+			fs_size--; // -1 to skip the 0xFF byte at the end
+			ByteArray<uint8_t, 1> mw2_data{};
+			auto read_size = mw2_data.from_file(fp);
+			if (read_size != fs_size)
+				ErrorState::pixi_error("Couldn't fully read file {}, please check file permissions", cfg.m_Extensions[ExtType::Mw2]);
+			fwrite(mw2_data.ptr_at(0), 1, fs_size, mw2);
+		}
+		fclose(fp);
+	}
+	else {
+		fputc(0x00, mw2); // binary data starts with 0x00
+	}
+	if (!cfg.m_Extensions[ExtType::S16].empty()) {
+		FILE* fp = fileopen(cfg.m_Extensions[ExtType::S16].c_str(), "rb");
+		ByteArray<uint8_t, 1> s16_data{};
+		s16_data.from_file(fp);
+		for (auto iter = s16_data.cbegin(); iter != s16_data.cend(); iter += sizeof(Map16)) {
+			map.emplace_back(iter);
+		}
+		fclose(fp);
+	}
+	for (int i = 0; i < 0x100; i++) {
+		Sprite& spr = from_table(normal(), 0x200, i, cfg.PerLevel, ListType::Sprite);
+
+		if (spr.invalid || (cfg.PerLevel && i >= 0xB0 && i < 0xC0)) {
+			extra_bytes[i] = 7;
+			extra_bytes[i + 0x100] = 7;
+		}
+		else {
+			if (spr.line) {
+				extra_bytes[i] = (uint8_t)(3 + spr.byte_count);
+				extra_bytes[i + 0x100] = (uint8_t)(3 + spr.extra_byte_count);
+
+				if (map.size() + spr.map_data.size() > MAP16_SIZE) {
+					ErrorState::pixi_error("There wasn't enough space in your s16 file to fit everything, was trying to fit {} blocks, "
+						"couldn't find space\n", spr.map_data.size());
+				}
+				auto map_offset = map.size();
+				std::for_each(spr.map_data.cbegin(), spr.map_data.cend(), [&map](const Map16& block) mutable {
+					map.emplace_back(block);
+					});
+				for (auto& dis : spr.displays) {
+					int ref = dis.y * 0x1000 + dis.x * 0x100 + 0x20 + (dis.extra_bit ? 0x10 : 0);
+					if (dis.description.empty()) {
+						fmt::print(ssc, "{:02X} {:04X} {}\n", i, ref, spr.asm_file);
+					}
+					else {
+						fmt::print(ssc, "{:02X} {:04X} {}\n", i, ref, dis.description);
+					}
+
+					fmt::print(ssc, "{:02X} {:04X}", i, ref + 2);
+					for (auto& tile : dis.tiles) {
+						if (!tile.text.empty()) {
+							fmt::print(ssc, " 0,0,*{}*", tile.text);
+							break;
+						}
+						else {
+							int tile_num = tile.tile_number;
+							if (tile_num >= 0x300)
+								tile_num += 0x100 + map_offset;
+							fmt::print(ssc, " {},{},{:X}", tile.x_offset, tile.y_offset, tile_num);
+						}
+					}
+					fmt::print(ssc, "\n");
+				}
+
+				int j = 0;
+				for (auto& c : spr.collections) {
+					char b = 0x79 + (c.extra_bit ? 0x04 : 0);
+					fputc(b, mw2);
+					fputc(0x70, mw2);
+					fputc(spr.number, mw2);
+					int byte_count = (c.extra_bit ? spr.extra_byte_count : spr.byte_count);
+					fwrite(c.prop, 1, byte_count, mw2);
+					if (j == 0)
+						fmt::print(mwt, "{:02X}\t{}\n", spr.number, c.name);
+					else
+						fmt::print(mwt, "\t{}\n", c.name);
+					j++;
+				}
+			}
+			else {
+				extra_bytes[i] = 3;
+				extra_bytes[i + 0x100] = 3;
+			}
+		}
+	}
+	fputc(0xFF, mw2);
+	map.insert(map.cbegin() + map.size(), map.capacity() - map.size(), {});
+	fwrite(map.data(), sizeof(Map16), map.size(), s16);
+	fclose(s16);
+	fclose(ssc);
+	fclose(mwt);
+	fclose(mw2);
 }
 
 void SpritesData::write_long_table(Svect::const_iterator spr, const std::string& dir, std::string_view filename)

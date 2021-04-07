@@ -3,10 +3,9 @@
 #include <iomanip>
 #include <fstream>
 #include <algorithm>
-#include "Rom.h"
-#include "json/json.hpp"
 #include "base64/base64.h"
 #include "JsonData.h"
+#include "Config.h"
 
 enum class ListType : int {
 	Sprite,
@@ -35,10 +34,6 @@ struct Pointer {
 
 	size_t addr() {
 		return (bankbyte << 16) + (highbyte << 8) + lowbyte;
-	}
-
-	size_t offset(Rom rom) {
-		return rom.snes_to_pc(addr());
 	}
 };
 
@@ -76,7 +71,14 @@ struct Map8x8 {
 
 struct Map16 {
 	std::array<Map8x8, 4> corners{ { {}, {}, {}, {} } };
+	Map16() = default;
 	Map16(std::vector<uint8_t>::const_iterator iter) {
+		for (int i = 0; i < 4; i++) {
+			corners[i].prop = *(iter + (i * 2));
+			corners[i].tile = *(iter + (i * 2) + 1);
+		}
+	}
+	Map16(ConstByteIterator<uint8_t> iter) {
 		for (int i = 0; i < 4; i++) {
 			corners[i].prop = *(iter + (i * 2));
 			corners[i].tile = *(iter + (i * 2) + 1);
@@ -152,5 +154,4 @@ struct Sprite {
 	void parse(PixiConfig& cfg);
 	void from_json(PixiConfig& cfg);
 	void from_cfg();
-	void patch(const std::vector<std::string>& extraDefines, Rom& rom, PixiConfig& cfg);
 };

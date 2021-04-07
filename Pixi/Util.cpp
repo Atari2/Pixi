@@ -41,12 +41,9 @@ FILE* fileopen(const char* filename, const char* mode) {
 	return fp;
 }
 
-bool nameEndWithAsmExtension(const char* name) {
-    return !strcmp(".asm", name + strlen(name) - 4) && name[0] != '.';
-}
-
 bool nameEndWithAsmExtension(std::string_view name) {
-    return nameEndWithAsmExtension(name.data());
+    if (name.size() < 4) return false;
+    return name.compare(name.size() - 4, 4, ".asm") == 0 && name[0] != '.';
 }
 
 std::string cleanPathTrail(std::string path) {
@@ -111,4 +108,31 @@ std::string escapeDefines(std::string_view path, const char* repl) {
         }
     }
     return ss.str();
+}
+
+FILE* open_subfile(const std::string& name, const char* ext, const char* mode)
+{
+    std::string filename = name.substr(0, name.find_last_of('.') + 1) + ext;
+    return fileopen(filename.c_str(), mode);
+}
+
+size_t filesize(FILE* fp)
+{
+    fseek(fp, 0, SEEK_END);
+    size_t size = ftell(fp);
+    fseek(fp, 0, SEEK_SET);
+    return size;
+}
+
+bool ends_with(const char* str, const char* suffix) {
+    if (str == nullptr || suffix == nullptr)
+        return false;
+
+    size_t str_len = strlen(str);
+    size_t suffix_len = strlen(suffix);
+
+    if (suffix_len > str_len)
+        return false;
+
+    return 0 == strncmp(str + str_len - suffix_len, suffix, suffix_len);
 }

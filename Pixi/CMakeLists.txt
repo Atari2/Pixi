@@ -18,6 +18,7 @@ list(
 	"${CMAKE_CURRENT_SOURCE_DIR}/base64/base64.cpp"
 	"${CMAKE_CURRENT_SOURCE_DIR}/Config.cpp"
 	"${CMAKE_CURRENT_SOURCE_DIR}/SpritesData.cpp"
+	"${CMAKE_CURRENT_SOURCE_DIR}/MeiMei/MeiMei.cpp"
 
 	"${CMAKE_CURRENT_SOURCE_DIR}/Pixi.h"
 	"${CMAKE_CURRENT_SOURCE_DIR}/Rom.h"
@@ -29,6 +30,7 @@ list(
 	"${CMAKE_CURRENT_SOURCE_DIR}/Entities.h"
 	"${CMAKE_CURRENT_SOURCE_DIR}/base64/base64.h"
 	"${CMAKE_CURRENT_SOURCE_DIR}/SpritesData.h"
+	"${CMAKE_CURRENT_SOURCE_DIR}/MeiMei/MeiMei.h"
 
 	# json library
 	"${CMAKE_CURRENT_SOURCE_DIR}/json/json.hpp"
@@ -49,6 +51,7 @@ if (CMAKE_COMPILER_IS_GNUCXX)
 	else()
 		message(STATUS "Building release mode")
 		target_link_options(Pixi PRIVATE -s -Wl,--gc-sections)
+		target_compile_options(Pixi PRIVATE -Wno-unused-parameter)
 	endif()
 	message(STATUS "GCC detected, adding compile flags")
 	target_link_libraries(Pixi PRIVATE dl)

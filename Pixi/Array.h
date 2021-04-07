@@ -2,6 +2,7 @@
 #include <cstdint>
 #include <cstdio>
 #include <type_traits>
+#include <cassert>
 
 template <typename T, typename = std::enable_if_t<sizeof(T) == 1>>
 class ByteIterator {
@@ -25,8 +26,19 @@ public:
 		return *this;
 	}
 
+	ByteIterator<T>& operator+(int value) {
+		m_current += value;
+		return *this;
+	}
+
+	ByteIterator<T>& operator+=(int value) {
+		m_current += value;
+		return *this;
+	}
+
 	bool operator==(const ByteIterator<T>& rhs) const { return m_current == rhs.m_current; }
 	bool operator!=(const ByteIterator<T>& rhs) const { return m_current != rhs.m_current; }
+
 };
 
 template <typename T, typename = std::enable_if_t<sizeof(T) == 1>>
@@ -51,6 +63,17 @@ public:
 		return *this;
 	}
 
+	ConstByteIterator<T> operator+(int value) {
+		T* new_curr = const_cast<T*>(m_current) + value;
+		ConstByteIterator<T> iter(new_curr);
+		return iter;
+	}
+
+	ConstByteIterator<T>& operator+=(int value) {
+		m_current += value;
+		return *this;
+	}
+
 	bool operator==(const ConstByteIterator<T>& rhs) const { return m_current == rhs.m_current; }
 	bool operator!=(const ConstByteIterator<T>& rhs) const { return m_current != rhs.m_current; }
 };
@@ -58,13 +81,19 @@ public:
 template <typename T, size_t S, typename = std::enable_if_t<sizeof(T) == 1>>
 class ByteArray {
 	T* m_start;
-	const size_t m_capacity;
+	size_t m_capacity;
 	size_t m_size;
 public:
 	ByteArray() : m_capacity(S) {
 		m_start = new T[S];
 		memset(m_start, 0, m_capacity);
 		m_size = 0;
+	}
+	
+	ByteArray(T val) : m_capacity(S) {
+		m_start = new T[S];
+		memset(m_start, val, m_capacity);
+		m_size = m_capacity;
 	}
 
 	ByteArray(std::initializer_list<T> list) : m_capacity(list.size()) {
@@ -77,8 +106,31 @@ public:
 		delete[] m_start;
 	}
 
+	ByteArray<T, S>& operator=(ByteArray<T, S>&& other) {
+		m_start = other.m_start;
+		m_size = other.m_size;
+		m_capacity = other.m_capacity;
+		other.m_start = nullptr;
+		return *this;
+	}
+
 	void reset() {
 		memset(m_start, 0, m_capacity);
+	}
+
+	// only grows bigger, not smaller
+	void resize(size_t newsize) {
+		assert(newsize > m_capacity);
+		T* new_start = new T[newsize];
+		memcpy(new_start, m_start, m_size);
+		m_capacity = newsize;
+		delete[] m_start;
+		m_start = new_start;
+	}
+
+	void fill(T val) {
+		memset(m_start, val, m_capacity);
+		m_size = m_capacity;
 	}
 
 	T& operator[](size_t index) {
@@ -153,12 +205,14 @@ public:
 		return m_size;
 	}
 
-	void from_file(FILE* fp) {
+	size_t from_file(FILE* fp) {
 		fseek(fp, 0, SEEK_END);
-		auto fsize = ftell(fp);
+		size_t fsize = ftell(fp);
 		fseek(fp, 0, SEEK_SET);
+		if (fsize > m_capacity)
+			resize(fsize);
 		m_size = fsize / sizeof(T);
-		fread(m_start, sizeof(T), m_size, fp);
+		return fread(m_start, sizeof(T), m_size, fp);
 	}
 
 	void write(const T* src, size_t size) {
@@ -181,24 +235,24 @@ public:
 
 	}
 	template <size_t S>
-	ByteArrayView(const ByteArray<T, S>& arr, size_t offset) : ptr(arr.ptr_at(offset)), size(arr.size()) {
+	ByteArrayView(const ByteArray<T, S>& arr, size_t offset) : ptr(arr.ptr_at(offset)), size(arr.size() - offset) {
 
 	}
 
 	constexpr T operator[](size_t index) const {
 #ifdef DEBUG
-		return at(index);
+		return *at(index);
 #else
 		return ptr[index];
 #endif
 	}
 
-	constexpr T at(size_t index) const {
+	constexpr const T* at(size_t index) const {
 		if (index >= size) {
 			printf("[ ARRAY ] Trying to access array of size %zd with index of size %zd\n", size, index);
 			exit(-1);
 		}
-		return ptr[index];
+		return ptr + index;
 	}
 
 	const ConstByteIterator<T> cbegin() const {

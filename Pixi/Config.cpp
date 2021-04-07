@@ -59,15 +59,14 @@ void PixiConfig::parse_cmd_line_args(int argc, char* argv[])
 		else if (arg == "-ext-off") {
 			ExtMod = false;
 		}
-		// TODO: handle meimei command arguments
 		else if (arg == "-meimei-a") {
-
+			m_meimei.always = true;
 		}
 		else if (arg == "-meimei-d") {
-
+			m_meimei.debug = true;
 		}
 		else if (arg == "-meimei-k") {
-
+			m_meimei.keep = true;
 		}
 		else if (arg == "-meimei-off") {
 			DisableMeiMei = true;
@@ -186,6 +185,25 @@ void PixiConfig::create_shared_patch()
 	}
 	fmt::print("{} Shared routines registered in \"{}\"\n", routine_count, routinepath);
 	fclose(shared_patch);
+}
+
+void PixiConfig::create_lm_restore()
+{
+	auto to_write = fmt::format("Pixi v1.{:02X}\t", VERSION);
+	auto restorename = RomName.substr(0, RomName.find_last_of('.')) + ".extmod";
+	FILE* res = fileopen(restorename.c_str(), "a+");
+	size_t size = filesize(res);
+	char* contents = new char[size + 1];
+	size_t read_size = fread(contents, 1, size, res);
+	if (size != read_size)
+		ErrorState::pixi_error("Couldn\'t fully read file {}, please check file permissions", restorename);
+	contents[size] = '\0';
+	if (!ends_with(contents, to_write.c_str())) {
+		fseek(res, 0, SEEK_END);
+		fmt::print(res, "{}", to_write);
+	}
+	fclose(res);
+	delete[] contents;
 }
 
 std::vector<std::string> PixiConfig::list_extra_asm(const char* folder) {

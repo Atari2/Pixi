@@ -19,7 +19,9 @@ std::string cleanPathTrail(std::string path);
 void set_paths_relative_to(std::string& path, std::string_view arg0);
 std::string append_to_dir(std::string_view src, std::string_view file);
 std::string escapeDefines(std::string_view path, const char* repl = "\\!");
-
+FILE* open_subfile(const std::string& name, const char* ext, const char* mode);
+size_t filesize(FILE* fp);
+bool ends_with(const char* str, const char* suffix);
 
 class ErrorState {
 	inline static bool asar_inited = false;
@@ -28,6 +30,10 @@ public:
 	static bool asar_init_wrap() {
 		asar_inited = asar_init();
 		return asar_inited;
+	}
+	static void asar_close_wrap() {
+		if (asar_inited) asar_close();
+		asar_inited = false;
 	}
 	template <typename ...Args>
 	static void pixi_error(const char* format, Args... args) {
@@ -41,8 +47,7 @@ public:
 		SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), FOREGROUND_BLUE | FOREGROUND_GREEN | FOREGROUND_RED);
 
 #endif
-		if (asar_inited)
-			asar_close();
+		asar_close_wrap();
 		exit(1);
 	}
 
