@@ -103,10 +103,8 @@ struct PixiConfig {
 	using Iter = std::vector<std::string>::const_iterator;
 	PixiConfig() = default;
 	PixiConfig(int argc, char* argv[]) {
-		if (argc < 2) {
-			wait_before_exit(argc);
+		if (argc < 2)
 			set_rom_name(argc, argv);
-		}
 		else
 			parse_cmd_line_args(argc, argv);
 	}

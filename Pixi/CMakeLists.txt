@@ -9,6 +9,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 set(PIXI_SOURCE_FILES "")
 list(
 	APPEND PIXI_SOURCE_FILES
+	"${CMAKE_CURRENT_SOURCE_DIR}/icon.rc"
 	"${CMAKE_CURRENT_SOURCE_DIR}/Pixi.cpp"
 	"${CMAKE_CURRENT_SOURCE_DIR}/Rom.cpp"
 	"${CMAKE_CURRENT_SOURCE_DIR}/asar/asardll.c"
@@ -51,7 +52,7 @@ if (CMAKE_COMPILER_IS_GNUCXX)
 	else()
 		message(STATUS "Building release mode")
 		target_link_options(Pixi PRIVATE -s -Wl,--gc-sections)
-		target_compile_options(Pixi PRIVATE -Wno-unused-parameter)
+		target_compile_options(Pixi PRIVATE -Wno-unused-parameterm, Wno-unused-variable)
 	endif()
 	message(STATUS "GCC detected, adding compile flags")
 	target_link_libraries(Pixi PRIVATE dl)
@@ -60,47 +61,48 @@ else()
 	message(STATUS "Build type is ${CMAKE_CONFIGURATION_TYPES}")
 	if (CMAKE_CONFIGURATION_TYPES STREQUAL "Debug")
 		target_compile_definitions(Pixi PUBLIC DEBUG)
+		STRING (REGEX REPLACE "/RTC(su|[1su])" "" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
+		STRING (REGEX REPLACE "/RTC(su|[1su])" "" CMAKE_C_FLAGS "${CMAKE_C_FLAGS}")
+		STRING (REGEX REPLACE "/RTC(su|[1su])" "" CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG}")
+		STRING (REGEX REPLACE "/RTC(su|[1su])" "" CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG}")
+		target_compile_options(Pixi PRIVATE /fsanitize=address)
 	endif()
 	set(CMAKE_GENERATOR "Visual Studio 16 2019")
 	set(CMAKE_GENERATOR_PLATFORM Win32 CACHE INTERNAL "")
 	set(CMAKE_VS_PLATFORM_NAME Win32 CACHE INTERNAL "")
+	target_compile_options(Pixi PRIVATE /MT /Wall /std:c++17)
 	target_link_options(Pixi PRIVATE /INCREMENTAL:NO /NODEFAULTLIB:MSVCRT)
 	message(STATUS "MSVC detected, adding compile flags")
-	target_compile_options(Pixi PRIVATE /MT /Wall /std:c++17)
+
 	target_compile_options(Pixi PRIVATE
 			# generic & extremely noisy warnings which do (almost) nothing useful
             # not to say that most come from code which I have no control over
 			/wd4514 # unreferenced inline function removed
 			/wd4710 # function not inlined
-			/wd4711 # function selected for automatic inline expansion
 			/wd4820 # 'bytes' bytes padding added after construct 'member_name'
 			/wd4464 # relative include path contains '..'
-
-            # specific warnings of pixi
+			#
+            ## specific warnings of pixi
             /wd4996 # deprecated function
-            /wd6031 # return value ignored -> should probably be taken care of instead of ignored at some point
             /wd4365 # signed/unsigned mismatch -> should probably be taken care of instead of ignored at some point
             /wd5045 # spectre mitigation
-            /wd4774 # format string is not a string literal
-
-            # from here are warnings that I can't do anything about
-            # but I still dont't want them clogging my output
-
-            # from nlhomann's json.hpp
+			#
+            ## from here are warnings that I can't do anything about
+            ## but I still dont't want them clogging my output
+			#
+            ## from nlhomann's json.hpp
             /wd4061 # enumerator 'identifier' in switch of enum 'enumeration' is not explicitly handled by a case label
             /wd4623 # default constructor was implicitely defined as deleted
             /wd4625 # copy constructor was implicitely defined as deleted
             /wd4626 # assignment operator was implicitely defined as deleted
             /wd5027 # move assignment operator was implicitely defined as deleted
-            /wd26819 # unannotated fallthrought between switch labels
-            /wd28020 # The expression <expr> is not true at this call
-            /wd26495 # Variable <var> is uninitialized. Always initialize a member variable
-
-            # from asardll.c
+			/wd5026 # move constructor was implicitly defined as deleted
+			#
+            ## from asardll.c
             /wd5039 # throwing stuff passed to extern "C"
             /wd4090 # function different 'const' qualifiers (stuff from asardll.c)
-
-            # from stdlib's limits.h for some reason (why does stuff from the stdlib have warnings)
+			#
+            ## from stdlib's limits.h for some reason (why does stuff from the stdlib have warnings)
             /wd4668
 	)
 endif()

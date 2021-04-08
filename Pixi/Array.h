@@ -102,6 +102,10 @@ public:
 		std::move(list.begin(), list.end(), start());
 	}
 
+	ByteArray(ByteArray<T, S>&& other) = delete;
+	ByteArray(const ByteArray<T, S>& other) = delete;
+	ByteArray<T, S>& operator=(const ByteArray<T, S>& other) = delete;
+
 	~ByteArray() {
 		delete[] m_start;
 	}
@@ -238,6 +242,10 @@ public:
 	ByteArrayView(const ByteArray<T, S>& arr, size_t offset) : ptr(arr.ptr_at(offset)), size(arr.size() - offset) {
 
 	}
+	ByteArrayView(const ByteArrayView<T>& other) = delete;
+	ByteArrayView(ByteArrayView<T>&& other) = delete;
+	ByteArrayView<T>& operator=(const ByteArrayView<T>& other) = delete;
+	ByteArrayView<T>& operator=(ByteArrayView<T>&& other) = delete;
 
 	constexpr T operator[](size_t index) const {
 #ifdef DEBUG

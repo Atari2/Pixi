@@ -4,6 +4,8 @@
 #include "Pixi.h"
 
 int main(int argc, char* argv[]) {
+	if (argc < 2)
+		wait_before_exit(argc);
 	if (!ErrorState::asar_init_wrap())
 		ErrorState::pixi_error("Asar library is missing or couldn't be initialized, please redownload the tool or the dll.\n");
 	PixiConfig cfg{ argc, argv };

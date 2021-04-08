@@ -204,7 +204,7 @@ void Sprite::from_json(PixiConfig& cfg)
 			try {
 				coll.prop[i - 1] = jcoll.at("Extra Property Byte " + std::to_string(i));
 			}
-			catch (const std::out_of_range& exc) {
+			catch (const std::out_of_range&) {
 				coll.prop[i - 1] = 0;
 				cfg.WarningList.push_back("Your json file \"" +
 					std::filesystem::path(cfg_file).filename().generic_string() +
