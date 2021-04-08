@@ -29,16 +29,23 @@ public:
 	const ByteArrayView<uint8_t> data();
 
 	int& size() { return m_size; }
+
+	// all of these functions access the data directly, without checking for the header
 	void write(size_t offset, const uint8_t* data, size_t len);
 	void write(size_t offset, const std::vector<uint8_t>& data);
 	void write_snes(size_t address, const uint8_t* data, size_t len);
 	void write_snes(size_t address, const std::vector<uint8_t>& data);
+	uint8_t at(size_t offset);
 	uint8_t at_snes(size_t address);
+
+	// these account for the header, the offset is automatically increased by m_header_offset
 	int read_long(size_t offset);
 	uint16_t read_word(size_t offset);
 	uint8_t read_byte(size_t offset);
+
+	// the returned pc address is counted as if it'd index a headered rom
 	int pointer_at_snes(size_t address);
-	uint8_t at(size_t offset);
+
 	size_t pc_to_snes(size_t address, bool header = true);
 	size_t snes_to_pc(size_t address, bool header = true);
 	Pointer pointer_snes(int address, int size = 3, int bank = 0x00);

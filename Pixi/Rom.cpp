@@ -34,6 +34,7 @@ constexpr MapperType Rom::mapper()
 	return m_mapper;
 }
 
+// returns a read only view of the headerless data of the rom
 const ByteArrayView<uint8_t> Rom::data()
 {
 	return ByteArrayView(m_data, m_header_offset);
@@ -53,6 +54,11 @@ void Rom::write_snes(size_t address, const uint8_t* data, size_t len) {
 
 void Rom::write_snes(size_t address, const std::vector<uint8_t>& data) {
 	m_data.write_at(data.data(), data.size(), snes_to_pc(address));
+}
+
+uint8_t Rom::at(size_t offset)
+{
+	return m_data[offset];
 }
 
 uint8_t Rom::at_snes(size_t address)
@@ -77,11 +83,6 @@ int Rom::read_long(size_t offset) {
 int Rom::pointer_at_snes(size_t address) {
 	auto offset = snes_to_pc(address);
 	return m_data[offset] << 16 | m_data[offset + 1] << 8 | m_data[offset + 2];
-}
-
-uint8_t Rom::at(size_t offset)
-{
-	return m_data[offset];
 }
 
 size_t Rom::pc_to_snes(size_t address, bool header) {

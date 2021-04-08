@@ -81,7 +81,7 @@ constexpr std::underlying_type_t<T> FromEnum(T type) {
 template <typename T>
 void write_all(const T& data, const std::string& full_path, size_t size) {
 	FILE* file = fileopen(full_path.c_str(), "wb");
-	if (fwrite(data.ptr_at(0), 1, size, file) != size) {
+	if (fwrite(data.start(), 1, size, file) != size) {
 		ErrorState::pixi_error("{} couldn't be fully written. Please check file permissions.", full_path);
 	}
 	fclose(file);

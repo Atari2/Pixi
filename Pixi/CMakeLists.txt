@@ -81,6 +81,8 @@ else()
 			/wd4710 # function not inlined
 			/wd4820 # 'bytes' bytes padding added after construct 'member_name'
 			/wd4464 # relative include path contains '..'
+			/wd4100 # unreferenced formal parameter
+			/wd4189 # local variable is initialized but not referenced
 			#
             ## specific warnings of pixi
             /wd4996 # deprecated function

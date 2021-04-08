@@ -9,16 +9,6 @@
 
 constexpr auto SPR_ADDR_LIMIT = 0x800;
 
-#define ERR(msg)                                                                                                       \
-    {                                                                                                                  \
-        printf("Error: %s", msg);                                                                                      \
-        goto end;                                                                                                      \
-    }
-
-#define ASSERT_SPR_DATA_ADDR_SIZE(val)                                                                                 \
-    if (val >= SPR_ADDR_LIMIT)                                                                                         \
-        ERR("Sprite data is too large!");
-
 void MeiMei::configureSa1Def(const std::string& pathToSa1Def) {
     std::string escapedPath = escapeDefines(pathToSa1Def);
     MeiMei::sa1DefPath = escapedPath;
@@ -50,8 +40,21 @@ void MeiMei::initialize(const std::string& rom_name) {
     nowEx.fill(0x00);
     if (prev.read_byte(0x07730F) == 0x42) {
         int addr = prev.snes_to_pc(prev.read_long(0x07730C), false);
-        prevEx.write(prev.data().at(addr), prevEx.size());
+        prevEx.write(prev.data().ptr_at(addr), prevEx.size());
     }
+}
+
+int MeiMei::validate(bool revert) {
+    if (revert) return 1;
+    return 0;
+}
+
+bool MeiMei::overSize(int size) {
+    if (size > SPR_ADDR_LIMIT) {
+        fmt::print("Sprite data is too large, size was {:X} when max size is {:X}", size, SPR_ADDR_LIMIT);
+        return true;
+    }
+    return false;
 }
 
 int MeiMei::run(PixiConfig& cfg) {
@@ -78,7 +81,7 @@ int MeiMei::run(Rom& rom, PixiConfig& cfg) {
     Rom now(MeiMei::name);
     if (prev.read_byte(0x07730F) == 0x42) {
         int addr = now.snes_to_pc(now.read_long(0x07730C), false);
-        nowEx.write(now.data().at(addr), 0x400);
+        nowEx.write(now.data().ptr_at(addr), 0x400);
     }
 
     bool changeEx = false;
@@ -112,7 +115,8 @@ int MeiMei::run(Rom& rom, PixiConfig& cfg) {
             int sprAddrSNES = (now.read_byte(0x077100 + lv) << 16) + now.read_word(0x02EC00 + lv * 2);
             int sprAddrPC = now.snes_to_pc(sprAddrSNES, false);
             if (sprAddrPC == -1) {
-                ERR("Sprite Data has invalid address.");
+                fmt::print("Sprite Data has invalid address. Address: ${:06X}\n", sprAddrSNES);
+                return validate(revert);
             }
 
             for (int i = 0; i < SPR_ADDR_LIMIT; i++) {
@@ -126,9 +130,10 @@ int MeiMei::run(Rom& rom, PixiConfig& cfg) {
             bool changeData = false;
 
             while (true) {
-                sprCommonData.write(now.data().at(sprAddrPC + prevOfs), 3);
+                sprCommonData.write(now.data().ptr_at(sprAddrPC + prevOfs), 3);
                 if (nowOfs >= SPR_ADDR_LIMIT - 3) {
-                    ERR("Sprite data is too large!");
+                    fmt::print("Sprite data is too large! Size is {:X}", nowOfs);
+                    return validate(revert);
                 }
 
                 if (sprCommonData[0] == 0xFF) {
@@ -143,7 +148,7 @@ int MeiMei::run(Rom& rom, PixiConfig& cfg) {
                     }
                     else {
                         prevOfs += 2;
-                        sprCommonData.write(now.data().at(sprAddrPC + prevOfs), 3);
+                        sprCommonData.write(now.data().ptr_at(sprAddrPC + prevOfs), 3);
                     }
                 }
 
@@ -158,24 +163,24 @@ int MeiMei::run(Rom& rom, PixiConfig& cfg) {
                     int i;
                     for (i = 3; i < prevEx[sprNum]; i++) {
                         sprAllData[nowOfs++] = now.read_byte(sprAddrPC + prevOfs + i);
-                        ASSERT_SPR_DATA_ADDR_SIZE(nowOfs);
+                        if (overSize(nowOfs)) return validate(revert);
                     }
                     for (; i < nowEx[sprNum]; i++) {
                         sprAllData[nowOfs++] = 0x00;
-                        ASSERT_SPR_DATA_ADDR_SIZE(nowOfs);
+                        if (overSize(nowOfs)) return validate(revert);
                     }
                 }
                 else if (nowEx[sprNum] < prevEx[sprNum]) {
                     changeData = true;
                     for (int i = 3; i < nowEx[sprNum]; i++) {
                         sprAllData[nowOfs++] = now.read_byte(sprAddrPC + prevOfs + i);
-                        ASSERT_SPR_DATA_ADDR_SIZE(nowOfs);
+                        if (overSize(nowOfs)) return validate(revert);
                     }
                 }
                 else {
                     for (int i = 3; i < nowEx[sprNum]; i++) {
                         sprAllData[nowOfs++] = now.read_byte(sprAddrPC + prevOfs + i);
-                        ASSERT_SPR_DATA_ADDR_SIZE(nowOfs);
+                        if (overSize(nowOfs)) return validate(revert);
                     }
                 }
                 prevOfs += prevEx[sprNum];
@@ -187,7 +192,7 @@ int MeiMei::run(Rom& rom, PixiConfig& cfg) {
                 std::string binaryFileName = fmt::format("_tmp_bin_{:X}.bin", lv);
                 FILE* binFile = fileopen(binaryFileName.c_str(), "wb");
                 if (sprAllData.size() > 0) {
-                    fwrite(sprAllData.ptr_at(0), 1, sprAllData.size(), binFile);
+                    fwrite(sprAllData.start(), 1, sprAllData.size(), binFile);
                 }
                 fclose(binFile);
 
@@ -223,7 +228,8 @@ int MeiMei::run(Rom& rom, PixiConfig& cfg) {
                 }
 
                 if (!MeiMei::patch(fileName.c_str(), rom, cfg)) {
-                    ERR("An error occured when patching sprite data with asar.")
+                    fmt::print("An error occured when patching sprite data with asar.");
+                    return validate(revert);
                 }
 
                 if (MeiMei::debug) {
@@ -246,10 +252,5 @@ int MeiMei::run(Rom& rom, PixiConfig& cfg) {
         printf("Sprite data remapped successfully.\n");
         revert = false;
     }
-end:
-    if (revert) {
-        return 1;
-    }
-
-    return 0;
+    return validate(revert);
 }

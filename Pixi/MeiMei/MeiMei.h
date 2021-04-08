@@ -16,6 +16,8 @@ private:
 public:
     static void setCfg(const MeiMeiConfig& cfg);
     static void initialize(const std::string& name);
+    static int validate(bool revert);
+    static bool overSize(int size);
     static int run(PixiConfig& cfg);
     static void configureSa1Def(const std::string& pathToSa1Def);
 };

@@ -59,8 +59,8 @@ void SpritesData::patch_sprites(const std::vector<std::string>& extraDefines, Sv
 			pls_data.sprite_ptrs[pls_lv_addr] = (uint8_t)(pls_data.data_addr + 1);
 			pls_data.sprite_ptrs[pls_lv_addr + 1] = (uint8_t)((pls_data.data_addr + 1) >> 8);
 
-			memcpy(pls_data.data.ptr_at(0) + pls_data.data_addr, &spr.table, 0x10);
-			memcpy(pls_data.pls_pointers.ptr_at(0) + pls_data.data_addr, &spr.ptrs, 15);
+			memcpy(pls_data.data.start() + pls_data.data_addr, &spr.table, 0x10);
+			memcpy(pls_data.pls_pointers.start() + pls_data.data_addr, &spr.ptrs, 15);
 			int index = pls_data.data_addr + 0x0F;
 			if (index < 0x8000) {
 				pls_data.pls_pointers[index] = 0xFF;
@@ -286,7 +286,7 @@ void SpritesData::serialize_subfiles(const PixiConfig& cfg, ByteArray<uint8_t, 0
 			auto read_size = mw2_data.from_file(fp);
 			if (read_size != fs_size)
 				ErrorState::pixi_error("Couldn't fully read file {}, please check file permissions", cfg.m_Extensions[ExtType::Mw2]);
-			fwrite(mw2_data.ptr_at(0), 1, fs_size, mw2);
+			fwrite(mw2_data.start(), 1, fs_size, mw2);
 		}
 		fclose(fp);
 	}

@@ -110,7 +110,7 @@ public:
 		delete[] m_start;
 	}
 
-	ByteArray<T, S>& operator=(ByteArray<T, S>&& other) {
+	ByteArray<T, S>& operator=(ByteArray<T, S>&& other) noexcept {
 		m_start = other.m_start;
 		m_size = other.m_size;
 		m_capacity = other.m_capacity;
@@ -145,7 +145,7 @@ public:
 #endif
 	}
 
-	constexpr T operator[](size_t index) const {
+	T& operator[](size_t index) const {
 #ifdef DEBUG
 		return at(index);
 #else
@@ -153,15 +153,7 @@ public:
 #endif
 	}
 
-	constexpr T at(size_t index) const {
-		if (index >= size()) {
-			printf("[ ARRAY ] Trying to access array of size %zd with index of size %zd\n", size(), index);
-			exit(-1);
-		}
-		return m_start[index];
-	}
-
-	T& at(size_t index) {
+	T& at(size_t index) const {
 		if (index >= size()) {
 			printf("[ ARRAY ] Trying to access array of size %zd with index of size %zd\n", size(), index);
 			exit(-1);
@@ -249,18 +241,23 @@ public:
 
 	constexpr T operator[](size_t index) const {
 #ifdef DEBUG
-		return *at(index);
+		return at(index);
 #else
 		return ptr[index];
 #endif
 	}
 
-	constexpr const T* at(size_t index) const {
+	constexpr const T* ptr_at(size_t index) const {
+		assert(index < size);
+		return ptr + index;
+	}
+
+	constexpr const T& at(size_t index) const {
 		if (index >= size) {
 			printf("[ ARRAY ] Trying to access array of size %zd with index of size %zd\n", size, index);
 			exit(-1);
 		}
-		return ptr + index;
+		return ptr[index];
 	}
 
 	const ConstByteIterator<T> cbegin() const {
