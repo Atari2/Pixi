@@ -1,8 +1,11 @@
+[![Build status](https://ci.appveyor.com/api/projects/status/njsnuf2n3fiitkdm?svg=true)](https://ci.appveyor.com/project/Atari2/pixi)
 [![CMake](https://github.com/Atari2/Pixi/actions/workflows/cmake.yml/badge.svg)](https://github.com/Atari2/Pixi/actions/workflows/cmake.yml)
 
 PIXI is a tool to insert custom sprites into Super Mario World ROMs.
+
 It assembles using Asar, meaning TRASM sprites are not supported.
 
+Release Windows builds can be found [here](https://www.atarismwc.com/modern_pixi_releases/pixi.zip)
 # README Contents:
 - The List File
     - Normal Sprites
