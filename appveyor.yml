@@ -1,5 +1,5 @@
 install:
-  - ps: git submodule update --init --recursive
+  - git submodule update --init --recursive
 
 build_script:
   - ps: .\build_script.ps1
