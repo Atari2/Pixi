@@ -2,7 +2,7 @@ from zipfile import ZipFile
 import glob
 from pathlib import Path
 
-executable_path = 'out/build/x86-Release/Pixi/MinSizeRel/Pixi.exe'
+executable_path = 'build/Pixi/MinSizeRel/Pixi.exe'
 cfg_editor_path = 'CFGEditor/CFG Editor/bin/Release/CFG Editor.exe'
 to_zip = [(file, file.split('\\', 1)[-1]) for file in glob.glob('Resources/**/*', recursive=True)]
 
