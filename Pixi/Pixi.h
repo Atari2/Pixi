@@ -1,1 +1,2 @@
-﻿#include "SpritesData.h"
+﻿#pragma once
+#include "SpritesData.h"

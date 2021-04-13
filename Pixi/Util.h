@@ -1,3 +1,4 @@
+#pragma once
 #ifdef WIN32
 // there is a stupid max define in windows.h that causes a compilation error
 // it's guarded by a #ifndef NOMINMAX, so I define it and away it goes...

@@ -1,3 +1,4 @@
+#pragma once
 #include "Entities.h"
 
 enum class MapperType : int {

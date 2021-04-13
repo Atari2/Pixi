@@ -1,3 +1,4 @@
+#pragma once
 #include "MeiMei/MeiMei.h"
 
 struct PerLevelData {

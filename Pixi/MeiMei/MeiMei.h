@@ -1,3 +1,4 @@
+#pragma once
 #include "../Rom.h"
 
 class MeiMei {
