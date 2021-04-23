@@ -26,7 +26,9 @@ struct Pointer {
 
 	Pointer() = default;
 	Pointer(size_t snes);
-	Pointer(const Pointer& other) = default;
+	Pointer(const Pointer& other);
+	Pointer& operator=(const Pointer& other);
+
 	~Pointer() = default;
 
 	bool is_empty() const {
@@ -93,6 +95,10 @@ struct Map16 {
 };
 
 struct StatusPointers {
+	StatusPointers() = default;
+	StatusPointers(const StatusPointers& other);
+	StatusPointers& operator=(const StatusPointers& other);
+
 	std::array<Pointer, 5> pointers{ { {}, {}, {}, {}, {} } };
 	constexpr Pointer& carriable() {
 		return pointers[0];

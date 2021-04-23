@@ -342,7 +342,7 @@ bool Rom::patch_simple_main(std::string_view path, PixiConfig& cfg) {
 	return true;
 }
 
-bool Rom::patch_simple_sprite(MemoryFile<char>& sprite_patch, PixiConfig& cfg)
+bool Rom::patch_simple_sprite(MemoryFile<char>& sprite_patch, PixiConfig& cfg, std::string_view spr_name)
 {
 	auto params = m_sprite_memory_files.construct(sprite_patch, m_data.ptr_at(m_header_offset), MAX_ROM_SIZE, size());
 	if (!asar_patch_ex(params)) {
@@ -358,7 +358,7 @@ bool Rom::patch_simple_sprite(MemoryFile<char>& sprite_patch, PixiConfig& cfg)
 	auto loc_warnings = asar_getwarnings(&warn_count);
 	for (int i = 0; i < warn_count; i++)
 		cfg.WarningList.push_back(loc_warnings[i].fullerrdata);
-	DEBUGFMTMSG("Patching for {} successful\n", sprite_patch.Path());
+	DEBUGFMTMSG("Patching for {} successful\n", spr_name);
 	return true;
 }
 
@@ -382,7 +382,7 @@ bool Rom::patch_sprite(Sprite& spr, const std::vector<std::string>& extraDefines
 	sprite_patch.insertData("\tincsrc \"{}\"\n", escapedAsmFile);
 	sprite_patch.insertData("namespace nested off\n");
 
-	bool retval = patch_simple_sprite(sprite_patch, cfg);
+	bool retval = patch_simple_sprite(sprite_patch, cfg, spr.asm_file);
 	std::map<std::string, int> ptr_map = {
 		std::pair<std::string, int>("init", 0x018021),
 		std::pair<std::string, int>("main", 0x018021),

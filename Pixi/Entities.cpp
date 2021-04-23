@@ -60,6 +60,19 @@ Pointer::Pointer(size_t snes)
 	bankbyte = (uint8_t)((snes >> 16) & 0xFF);
 }
 
+Pointer::Pointer(const Pointer& other) {
+	lowbyte = other.lowbyte;
+	highbyte = other.highbyte;
+	bankbyte = other.bankbyte;
+}
+
+Pointer& Pointer::operator=(const Pointer& other) {
+	lowbyte = other.lowbyte;
+	highbyte = other.highbyte;
+	bankbyte = other.bankbyte;
+	return *this;
+}
+
 void Sprite::print(FILE* stream)
 {
 	fmt::print(stream, "Type:       {:02X}\n", table.type);
@@ -231,4 +244,17 @@ void Sprite::from_cfg() {
 		nline++;
 	}
 	DEBUGFMTMSG("Parsed {}, {} lines\n", cfg_file, nline - 1);
+}
+
+StatusPointers::StatusPointers(const StatusPointers& other)
+{
+	for (size_t i = 0; i < other.pointers.size(); i++)
+		pointers[i] = other.pointers[i];
+}
+
+StatusPointers& StatusPointers::operator=(const StatusPointers& other)
+{
+	for (size_t i = 0; i < other.pointers.size(); i++)
+		pointers[i] = other.pointers[i];
+	return *this;
 }

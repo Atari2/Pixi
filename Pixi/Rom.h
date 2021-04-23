@@ -68,7 +68,7 @@ public:
 	// patches a single memory file contaning the wrapper around a sprite
 	// also includes shared.asm and config.asm
 	// swallows the MemoryFile, taking ownership of it
-	bool patch_simple_sprite(MemoryFile<char>& sprite_patch, PixiConfig& cfg);
+	bool patch_simple_sprite(MemoryFile<char>& sprite_patch, PixiConfig& cfg, std::string_view spr_name);
 
 	// calls patch_simple_main appending the dir before the filename
 	bool patch_main(const std::string& dir, const std::string& file, PixiConfig& cfg);

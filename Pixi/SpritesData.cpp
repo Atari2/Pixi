@@ -25,7 +25,6 @@ void SpritesData::patch_sprites(const std::vector<std::string>& extraDefines, Sv
 		Sprite& spr = sprites[i];
 		if (spr.asm_file.empty())
 			continue;
-		bool duplicate = false;
 		auto res = std::find_if(sprites.rbegin() + (size - i), sprites.rend(), [spr](const Sprite& curr) {
 			if (curr.asm_file.empty())
 				return false;
@@ -33,14 +32,13 @@ void SpritesData::patch_sprites(const std::vector<std::string>& extraDefines, Sv
 			});
 		if (res != sprites.rend()) {
 			spr.table.init = (*res).table.init;
-			spr.table.init = (*res).table.main;
+			spr.table.main = (*res).table.main;
 			spr.extended_cape_ptr = (*res).extended_cape_ptr;
 			spr.ptrs = (*res).ptrs;
-			duplicate = true;
-			break;
 		}
-		if (!duplicate)
+		else {
 			rom().patch_sprite(spr, extraDefines, cfg);
+		}
 
 		if (spr.level < 0x200 && spr.number >= 0xB0 && spr.number < 0xC0) {
 			int pls_lv_addr = pls_data.level_ptrs[spr.level * 2] + (pls_data.level_ptrs[spr.level * 2 + 1] << 8);

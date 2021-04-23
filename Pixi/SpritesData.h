@@ -21,7 +21,7 @@ private:
 	Svect m_extended_sprites{};
 	Svect m_ow_sprites{};
 	PerLevelData pls_data{};
-	std::array<Svect*, FromEnum(ListType::SIZE)> sprites_list{&m_normal_sprites, &m_cluster_sprites, &m_extended_sprites, &m_ow_sprites};
+	std::array<Svect*, FromEnum(ListType::SIZE)> sprites_list{&m_normal_sprites, &m_extended_sprites, &m_cluster_sprites, &m_ow_sprites};
 	void patch_sprites(const std::vector<std::string>& extraDefines, Svect& sprites, size_t size, PixiConfig& cfg);
 	SpritesData(SpritesData&& other) = delete;
 public:
