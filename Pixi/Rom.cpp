@@ -360,8 +360,11 @@ bool Rom::patch(Sprite& spr, const std::vector<std::string>& extraDefines, PixiC
 		else if (!print.compare(0, 4, "GOAL") && spr.sprite_type == 0)
 			ptr_map["goal"] = std::stol(print.substr(4), nullptr, 16);
 		else if (!print.compare(0, 4, "VERG")) {
-			if (PixiConfig::VERSION < std::stol(print.substr(4), nullptr, 16)) {
-				ErrorState::pixi_error("Version guard failed on {}\n", spr.asm_file);
+			// if the user has put $ to indicate the hex number we skip it
+			auto required_version = std::stol(print.substr(print[4] == '$' ? 5 : 4), nullptr, 16);
+			if (PixiConfig::VERSION < required_version) {
+				ErrorState::pixi_error("The sprite {} requires to be inserted at least with Pixi 1.{:02X}, this is Pixi 1.{:02X}\n",
+					spr.asm_file, required_version, PixiConfig::VERSION);
 			}
 		}
 		else if (cfg.Debug) {
