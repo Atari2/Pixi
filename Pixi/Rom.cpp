@@ -434,19 +434,19 @@ bool Rom::patch_sprite(Sprite& spr, const std::vector<std::string>& extraDefines
 		else if (cfg.Debug) {
 			DEBUGFMTMSG("\t{}\n", print);
 		}
-		spr.table.init = Pointer(ptr_map["init"]);
-		spr.table.main = Pointer(ptr_map["main"]);
-		if (spr.table.init.is_empty() && spr.table.main.is_empty())
-			ErrorState::pixi_error("Sprite {} had neither INIT nor MAIN defined in its file, insertion has been aborted.", spr.asm_file);
-		if (spr.sprite_type == 1)
-			spr.extended_cape_ptr = Pointer(ptr_map["cape"]);
-		else if (spr.sprite_type == 0) {
-			spr.ptrs.carried() = Pointer(ptr_map["carried"]);
-			spr.ptrs.carriable() = Pointer(ptr_map["carriable"]);
-			spr.ptrs.kicked() = Pointer(ptr_map["kicked"]);
-			spr.ptrs.mouth() = Pointer(ptr_map["mouth"]);
-			spr.ptrs.goal() = Pointer(ptr_map["goal"]);
-		}
+	}
+	spr.table.init = Pointer(ptr_map["init"]);
+	spr.table.main = Pointer(ptr_map["main"]);
+	if (spr.table.init.is_empty() && spr.table.main.is_empty())
+		ErrorState::pixi_error("Sprite {} had neither INIT nor MAIN defined in its file, insertion has been aborted.", spr.asm_file);
+	if (spr.sprite_type == 1)
+		spr.extended_cape_ptr = Pointer(ptr_map["cape"]);
+	else if (spr.sprite_type == 0) {
+		spr.ptrs.carried() = Pointer(ptr_map["carried"]);
+		spr.ptrs.carriable() = Pointer(ptr_map["carriable"]);
+		spr.ptrs.kicked() = Pointer(ptr_map["kicked"]);
+		spr.ptrs.mouth() = Pointer(ptr_map["mouth"]);
+		spr.ptrs.goal() = Pointer(ptr_map["goal"]);
 	}
 	if (cfg.Debug) {
 		if (spr.sprite_type == 0)

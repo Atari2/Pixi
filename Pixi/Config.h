@@ -29,7 +29,7 @@ struct MeiMeiConfig {
 
 struct Paths {
 	static constexpr int ArrSize = FromEnum(PathType::SIZE);
-	static constexpr std::array<std::string_view, ArrSize> prefixes{ "-l", "-a", "-sp", "-sh", "-g", "-e", "-c", "-r" };
+	static constexpr std::array<std::string_view, ArrSize> prefixes{ "-r", "-sp", "-g", "-sh", "-l", "-a", "-e", "-c" };
 	std::string list{ "list.txt" };
 	std::string pasm{ "asm/" };
 	std::string sprites{ "sprites/" };
