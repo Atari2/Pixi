@@ -1,5 +1,119 @@
 #include "Config.h"
 
+PixiConfig::PixiConfig(int argc, char* argv[]) {
+
+	if (argc < 2) {
+		PixiExe = argv[0];
+		// if this was started in command line, path starts with ./ usually
+		if (PixiExe[0] == '.' && PixiExe[1] == '/')
+			PixiExe = PixiExe.substr(2);
+		parse_noargs_config_file();
+		set_rom_name(argc, argv);
+	}
+	else {
+		parse_config_file(parse_cmd_line_args(argc, argv));
+	}
+	GlobalKeepFlag = KeepFiles;
+}
+
+#ifdef _MSC_VER
+#pragma warning( push )
+#pragma warning( disable : 4866 )
+#endif
+void PixiConfig::parse_noargs_config_file() {
+	if (std::filesystem::exists("pixi_conf.toml")) {
+		try {
+			auto config_table = toml::parse_file("pixi_conf.toml");
+			auto paths_ptr = config_table["paths"].as_table();
+			if (paths_ptr != nullptr) {
+				auto& paths = *paths_ptr;
+				m_Paths[PathType::Routines] = paths["routines"].value_or(m_Paths[PathType::Routines]);
+				m_Paths[PathType::Sprites] = paths["sprites"].value_or(m_Paths[PathType::Sprites]);
+				m_Paths[PathType::Generators] = paths["generators"].value_or(m_Paths[PathType::Generators]);
+				m_Paths[PathType::Shooters] = paths["shooters"].value_or(m_Paths[PathType::Shooters]);
+				m_Paths[PathType::List] = paths["list"].value_or(m_Paths[PathType::List]);
+				m_Paths[PathType::Asm] = paths["asm"].value_or(m_Paths[PathType::Asm]);
+				m_Paths[PathType::Extended] = paths["extended"].value_or(m_Paths[PathType::Extended]);
+				m_Paths[PathType::Cluster] = paths["cluster"].value_or(m_Paths[PathType::Cluster]);
+			}
+			auto extensions_ptr = config_table["extensions"].as_table();
+			if (extensions_ptr != nullptr) {
+				auto& extensions = *extensions_ptr;
+				m_Extensions[ExtType::Ssc] = extensions["ssc"].value_or(m_Extensions[ExtType::Ssc]);
+				m_Extensions[ExtType::Mwt] = extensions["mwt"].value_or(m_Extensions[ExtType::Mwt]);
+				m_Extensions[ExtType::Mw2] = extensions["mw2"].value_or(m_Extensions[ExtType::Mw2]);
+				m_Extensions[ExtType::S16] = extensions["s16"].value_or(m_Extensions[ExtType::S16]);
+			}
+			auto meimei_ptr = config_table["meimei"].as_table();
+			if (meimei_ptr != nullptr) {
+				auto& meimei = *meimei_ptr;
+				m_meimei.always = meimei["alwaysremap"].value_or(false);
+				m_meimei.debug = meimei["debuginfo"].value_or(false);
+				m_meimei.keep = meimei["keeptemp"].value_or(false);
+			}
+			KeepFiles = config_table["keeptemp"].value_or(false);
+			PerLevel = config_table["perlevel"].value_or(false);
+			disable255Sprites= config_table["disable255sprites"].value_or(false);
+			ExtMod = config_table["extmod"].value_or(true);
+			DisableMeiMei = config_table["disablemeimei"].value_or(false);
+			Warnings = config_table["warnings"].value_or(false);
+			Debug = config_table["debug"].value_or(false);
+			Routines = config_table["routines"].value_or(100);
+		}
+		catch (const toml::parse_error& err) {
+			ErrorState::pixi_error("Couldn't parse pixi_conf.toml correctly, error was {}", err.description());
+		}
+	}
+	else {
+		std::ofstream outfile{ "pixi_conf.toml" };
+		if (!outfile)
+			ErrorState::pixi_error("Couldn't read pixi_conf.toml, please check file permissions");
+		auto config_table = toml::table{{
+			{"paths", toml::table{{
+				{"routines", m_Paths[PathType::Routines]},
+				{"sprites", m_Paths[PathType::Sprites]},
+				{"generators", m_Paths[PathType::Generators]},
+				{"shooters", m_Paths[PathType::Shooters]},
+				{"list", m_Paths[PathType::List]},
+				{"asm", m_Paths[PathType::Asm]},
+				{"extended", m_Paths[PathType::Extended]},
+				{"cluster", m_Paths[PathType::Cluster]}
+				}}},
+			{"extensions", toml::table{{
+				{"ssc", m_Extensions[ExtType::Ssc]},
+				{"mwt", m_Extensions[ExtType::Mwt]},
+				{"mw2", m_Extensions[ExtType::Mw2]},
+				{"s16", m_Extensions[ExtType::S16]}
+				}}},
+			{"meimei", toml::table{{
+				{"alwaysremap", false},
+				{"debuginfo", false},
+				{"keeptemp", false}
+				}}},
+			{"keeptemp", false},
+			{"perlevel", false},
+			{"disable255sprites", false},
+			{"extmod", true},
+			{"disablemeimei", false},
+			{"warnings", false},
+			{"debug", false},
+			{"routines", 100}
+		} };
+		outfile << config_table;
+		outfile.flush();
+	}
+}
+#ifdef _MSC_VER
+#pragma warning( pop )
+#endif
+
+void PixiConfig::parse_config_file(bool overwrite) {
+	// if the user specified -no-config, we don't care about the config file at all
+	if (overwrite)
+		return;
+	parse_noargs_config_file();
+}
+
 const std::string& PixiConfig::require_next(Iter& iter, Iter& end) {
 	if (iter + 1 == end) ErrorState::pixi_error("Requiring next parameter for {} failed\n", *iter);
 	return *(++iter);
@@ -21,8 +135,10 @@ bool PixiConfig::set_ext(Iter& iter, Iter& end, std::string_view pre, ExtType ty
 	return false;
 }
 
-void PixiConfig::parse_cmd_line_args(int argc, char* argv[])
+bool PixiConfig::parse_cmd_line_args(int argc, char* argv[])
 {
+	bool overwrite = false;
+
 	PixiExe = argv[0];
 	RomName = argv[argc - 1];
 	std::vector<std::string> vargv{};
@@ -58,6 +174,9 @@ void PixiConfig::parse_cmd_line_args(int argc, char* argv[])
 		}
 		else if (arg == "-ext-off") {
 			ExtMod = false;
+		}
+		else if (arg == "-no-config") {
+			overwrite = true;
 		}
 		else if (arg == "-meimei-a") {
 			m_meimei.always = true;
@@ -97,23 +216,24 @@ void PixiConfig::parse_cmd_line_args(int argc, char* argv[])
 			ErrorState::pixi_error("Invalid command line option \"{}\"\n", arg);
 		}
 	}
-
+	return overwrite;
 }
 
 void PixiConfig::correct_paths() {
+	DEBUGFMTMSG("{}\n", PixiExe)
 	for (int i = 0; i < FromEnum(PathType::SIZE); i++) {
 		if (i == FromEnum(PathType::List))
 			set_paths_relative_to(m_Paths[i], RomName);
 		else
 			set_paths_relative_to(m_Paths[i], PixiExe);
-		ErrorState::debug("Paths[{}] = {}\n", i, m_Paths[i]);
+		DEBUGFMTMSG("Paths[{}] = {}\n", i, m_Paths[i]);
 	}
 	AsmDir = m_Paths[FromEnum(PathType::Asm)];
 	AsmDirPath = cleanPathTrail(AsmDir);
 
 	for (int i = 0; i < FromEnum(ExtType::SIZE); i++) {
 		set_paths_relative_to(m_Extensions[i], RomName);
-		ErrorState::debug("Extensions[{}] = {}\n", i, m_Extensions[i]);
+		DEBUGFMTMSG("Extensions[{}] = {}\n", i, m_Extensions[i]);
 	}
 }
 
@@ -121,23 +241,22 @@ bool PixiConfig::areConfigFlagsToggled() {
 	return PerLevel || disable255Sprites || true;
 }
 
-void PixiConfig::create_config_file()
+MemoryFile<char> PixiConfig::create_config_file()
 {
-	std::string path = AsmDirPath + "/config.asm";
+	MemoryFile<char> file{ AsmDirPath + "/config.asm" };
 	if (areConfigFlagsToggled()) {
-		FILE* config = fileopen(path.c_str(), "w");
-		fmt::print(config, "!PerLevel = {:d}\n", (int)PerLevel);
-		fmt::print(config, "!Disable255SpritesPerLevel = {:d}", (int)disable255Sprites);
-		fclose(config);
+		file.insertData("!PerLevel = {:d}\n", (int)PerLevel);
+		file.insertData("!Disable255SpritesPerLevel = {:d}", (int)disable255Sprites);
 	}
+	return file;
 }
 
-void PixiConfig::create_shared_patch()
+MemoryFile<char> PixiConfig::create_shared_patch()
 {
 	const std::string& routinepath = m_Paths[PathType::Routines];
 	std::string escapedRoutinepath = escapeDefines(routinepath, R"(\\\!)");
-	FILE* shared_patch = fileopen("shared.asm", "w");
-	fmt::print(shared_patch, "macro include_once(target, base, offset)\n"
+	MemoryFile<char> shared_patch{ "shared.asm" };
+	shared_patch.insertData("macro include_once(target, base, offset)\n"
 		"	if !<base> != 1\n"
 		"		!<base> = 1\n"
 		"		pushpc\n"
@@ -168,7 +287,7 @@ void PixiConfig::create_shared_patch()
 			}
 			if (nameEndWithAsmExtension(name)) {
 				name = name.substr(0, name.length() - 4);
-				fmt::print(shared_patch,
+				shared_patch.insertData(
 					"!{} = 0\n"
 					"macro {}()\n"
 					"\t%include_once(\"{}{}.asm\", {}, ${:02X})\n"
@@ -184,7 +303,7 @@ void PixiConfig::create_shared_patch()
 		ErrorState::pixi_error("Trying to read folder \"{}\" returned \"{}\", aborting insertion\n", routinepath, err.what());
 	}
 	fmt::print("{} Shared routines registered in \"{}\"\n", routine_count, routinepath);
-	fclose(shared_patch);
+	return shared_patch;
 }
 
 void PixiConfig::create_lm_restore()
@@ -243,45 +362,11 @@ void PixiConfig::emit_warnings() {
 	}
 }
 
-void PixiConfig::fremove(const std::string& dir, const char* name) {
-	std::string fullpath = dir + name;
-	remove(fullpath.c_str());
-}
-
-void PixiConfig::cleanup()
-{
-	constexpr int ASM = FromEnum(PathType::Asm);
-	if (!KeepFiles) {
-		fremove(m_Paths[ASM], "_versionflag.bin");
-
-		fremove(m_Paths[ASM], "_DefaultTables.bin");
-		fremove(m_Paths[ASM], "_CustomStatusPtr.bin");
-		if (PerLevel) {
-			fremove(m_Paths[ASM], "_PerLevelLvlPtrs.bin");
-			fremove(m_Paths[ASM], "_PerLevelSprPtrs.bin");
-			fremove(m_Paths[ASM], "_PerLevelT.bin");
-			fremove(m_Paths[ASM], "_PerLevelCustomPtrTable.bin");
-		}
-
-		fremove(m_Paths[ASM], "_ClusterPtr.bin");
-		fremove(m_Paths[ASM], "_ExtendedPtr.bin");
-		fremove(m_Paths[ASM], "_ExtendedCapePtr.bin");
-		// remove("asm/_OverworldMainPtr.bin");
-		// remove("asm/_OverworldInitPtr.bin");
-
-		fremove(m_Paths[ASM], "_CustomSize.bin");
-		remove("shared.asm");
-		remove(TEMP_SPR_FILE);
-
-		fremove(m_Paths[ASM], "_cleanup.asm");
-	}
-}
-
 void PixiConfig::print_help()
 {
 	fmt::print("Version 1.{:02}\n", VERSION);
 	fmt::print("Usage: pixi <options> <ROM>\nOptions are:\n");
-	fmt::print("-d\t\tEnable debug output, the following flag <-out> only works when this is set\n");
+	fmt::print("-d\t\tEnable debug output\n");
 	fmt::print("-k\t\tKeep debug files\n");
 	fmt::print("-l  <listpath>\tSpecify a custom list file (Default: {})\n",
 		m_Paths[FromEnum(PathType::List)]);
@@ -324,6 +409,7 @@ void PixiConfig::print_help()
 	fmt::print("-lm-handle <lm_handle_code>\t To be used only within LM's custom user toolbar file, it receives "
 		"LM's handle to reload the rom\n");
 #endif
+	fmt::print("-no-config\t Disables the use of the config file for this run\n");
 
 	fmt::print("\nMeiMei flags:\n");
 	fmt::print("-meimei-off\t\tShuts down MeiMei completely\n");

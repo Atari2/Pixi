@@ -2,7 +2,9 @@
 #include <algorithm>
 #include <array>
 #include <string>
-#include "Util.h"
+#include <fstream>
+#include "StructParams.h"
+#include "toml/toml.hpp"
 
 enum class PathType : int {
 	Routines,
@@ -103,12 +105,7 @@ struct PixiConfig {
 	inline static const ByteArray<uint8_t, 4> versionflag { VERSION, 0x00, 0x00, 0x00 };
 	using Iter = std::vector<std::string>::const_iterator;
 	PixiConfig() = default;
-	PixiConfig(int argc, char* argv[]) {
-		if (argc < 2)
-			set_rom_name(argc, argv);
-		else
-			parse_cmd_line_args(argc, argv);
-	}
+	PixiConfig(int argc, char* argv[]);
 	Paths m_Paths{};
 	Extensions m_Extensions{};
 	MeiMeiConfig m_meimei{};
@@ -134,17 +131,16 @@ struct PixiConfig {
 	inline void set_rom_name(int argc, char* argv[]) {
 		RomName = argc < 2 ? ask("Insert ROM name here: ") : argv[1];
 	}
-
-	void parse_cmd_line_args(int argc, char* argv[]);
+	void parse_config_file(bool overwrite);
+	void parse_noargs_config_file();
+	bool parse_cmd_line_args(int argc, char* argv[]);
 	void correct_paths();
 	bool areConfigFlagsToggled();
-	void create_config_file();
-	void create_shared_patch();
+	MemoryFile<char> create_config_file();
+	MemoryFile<char> create_shared_patch();
 	void create_lm_restore();
 	std::vector<std::string> list_extra_asm(const char* folder);
 	void emit_warnings();
-	void fremove(const std::string& dir, const char* name);
-	void cleanup();
 	bool set_path(Iter& iter, Iter& end, std::string_view pre, PathType type);
 	bool set_ext(Iter& iter, Iter& end, std::string_view pre, ExtType type);
 	void print_help();

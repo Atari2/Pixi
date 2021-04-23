@@ -214,7 +214,7 @@ void Sprite::from_json(PixiConfig& cfg)
 		}
 		collections.push_back(coll);
 	}
-	ErrorState::debug("Parsed {}\n", cfg_file);
+	DEBUGFMTMSG("Parsed {}\n", cfg_file);
 }
 
 void Sprite::from_cfg() {
@@ -230,5 +230,5 @@ void Sprite::from_cfg() {
 		handlers[nline](current_line, *this);
 		nline++;
 	}
-	ErrorState::debug("Parsed {}, {} lines\n", cfg_file, nline - 1);
+	DEBUGFMTMSG("Parsed {}, {} lines\n", cfg_file, nline - 1);
 }

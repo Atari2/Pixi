@@ -13,6 +13,9 @@ void wait_before_exit(int arguments)
 	if (arguments < 2) {
 		atexit(double_click_exit);
 	}
+#else
+	// what do I have to do to ignore -Wunused-parameters
+	(void)arguments;
 #endif
 }
 
@@ -53,13 +56,12 @@ std::string cleanPathTrail(std::string path) {
 }
 
 void set_paths_relative_to(std::string& path, std::string_view arg0) {
-
+	DEBUGFMTMSG("{} {}\n", path, arg0);
 	if (path.empty())
 		return;
-
 	std::filesystem::path absBasePath(std::filesystem::absolute(arg0));
 	absBasePath.remove_filename();
-	ErrorState::debug("Absolute base path: {} ", absBasePath.generic_string());
+	DEBUGFMTMSG("Absolute base path: {} ", absBasePath.generic_string());
 	std::filesystem::path filePath(path);
 	std::string newPath{};
 	if (filePath.is_relative()) {
@@ -68,7 +70,7 @@ void set_paths_relative_to(std::string& path, std::string_view arg0) {
 	else {
 		newPath = filePath.generic_string();
 	}
-	ErrorState::debug("{}\n", newPath);
+	DEBUGFMTMSG("{}\n", newPath);
 	if (std::filesystem::is_directory(newPath) && newPath.back() != '/') {
 		path = newPath + "/";
 	}

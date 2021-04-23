@@ -20,7 +20,7 @@ list(
 	"${CMAKE_CURRENT_SOURCE_DIR}/Config.cpp"
 	"${CMAKE_CURRENT_SOURCE_DIR}/SpritesData.cpp"
 	"${CMAKE_CURRENT_SOURCE_DIR}/MeiMei/MeiMei.cpp"
-
+	
 	"${CMAKE_CURRENT_SOURCE_DIR}/Pixi.h"
 	"${CMAKE_CURRENT_SOURCE_DIR}/Rom.h"
 	"${CMAKE_CURRENT_SOURCE_DIR}/asar/asardll.h"
@@ -32,7 +32,9 @@ list(
 	"${CMAKE_CURRENT_SOURCE_DIR}/base64/base64.h"
 	"${CMAKE_CURRENT_SOURCE_DIR}/SpritesData.h"
 	"${CMAKE_CURRENT_SOURCE_DIR}/MeiMei/MeiMei.h"
-
+	"${CMAKE_CURRENT_SOURCE_DIR}/StructParams.h"
+	"${CMAKE_CURRENT_SOURCE_DIR}/MemoryFile.h"
+	
 	# json library
 	"${CMAKE_CURRENT_SOURCE_DIR}/json/json.hpp"
 	# fmt
@@ -41,9 +43,11 @@ list(
 	"${CMAKE_CURRENT_SOURCE_DIR}/fmt/fmt/format-inl.h"
 	"${CMAKE_CURRENT_SOURCE_DIR}/fmt/fmt/color.h"
 	"${CMAKE_CURRENT_SOURCE_DIR}/fmt/format.cc"
+	# toml
+	"${CMAKE_CURRENT_SOURCE_DIR}/toml/toml.hpp"
 )
 add_executable (Pixi ${PIXI_SOURCE_FILES})
-if (CMAKE_COMPILER_IS_GNUCXX)
+if (CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
 	if (CMAKE_BUILD_TYPE STREQUAL "Debug")
 		message(STATUS "Building debug mode")
 		target_compile_definitions(Pixi PUBLIC DEBUG)
@@ -52,9 +56,8 @@ if (CMAKE_COMPILER_IS_GNUCXX)
 	else()
 		message(STATUS "Building release mode")
 		target_link_options(Pixi PRIVATE -s -Wl,--gc-sections)
-		target_compile_options(Pixi PRIVATE -Wno-unused-parameter -Wno-unused-variable)
 	endif()
-	message(STATUS "GCC detected, adding compile flags")
+	message(STATUS "GCC/Clang detected, adding compile flags")
 	target_link_libraries(Pixi PRIVATE dl)
 	target_compile_options(Pixi PRIVATE -Wall -Wextra -Wpedantic)
 else()

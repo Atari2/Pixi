@@ -5,12 +5,13 @@
 #define NOMINMAX 1
 #include <windows.h>
 #endif
+#include <filesystem>
 #include <cstdio>
+#include <string_view>
 #include "fmt/fmt/format.h"
 #include "fmt/fmt/color.h"
 #include "asar/asardll.h"
 #include "Array.h"
-#include <filesystem>
 
 void wait_before_exit(int arguments);
 std::string ask(const char* prompt);
@@ -65,32 +66,25 @@ public:
 #endif
 	}
 
+#ifdef DEBUG
 	template <typename ...Args>
 	static void debug(const char* format, Args... args) {
-#ifdef DEBUG
 		fmt::print(format, args...);
-#endif
 	}
-
+#endif
 };
+
+#ifdef DEBUG
+#define DEBUGMSG(MESSAGE) ErrorState::debug(MESSAGE);
+#define DEBUGFMTMSG(MESSAGE, ...) ErrorState::debug(MESSAGE, __VA_ARGS__);
+#else
+#define DEBUGMSG(MESSAGE) (void)0;
+#define DEBUGFMTMSG(MESSAGE, ...) (void)0;
+#endif
 
 template <typename T>
 constexpr std::underlying_type_t<T> FromEnum(T type) {
 	return static_cast<std::underlying_type_t<T>>(type);
-}
-
-template <typename T>
-void write_all(const T& data, const std::string& full_path, size_t size) {
-	FILE* file = fileopen(full_path.c_str(), "wb");
-	if (fwrite(data.start(), 1, size, file) != size) {
-		ErrorState::pixi_error("{} couldn't be fully written. Please check file permissions.", full_path);
-	}
-	fclose(file);
-}
-
-template <typename T>
-void write_all(const T& data, const std::string& path, const char* filename, size_t size) {
-	write_all<T>(data, path + filename, size);
 }
 
 // trim from start (in place)
@@ -107,4 +101,8 @@ static inline void rtrim(std::string& s) {
 static inline void trim(std::string& s) {
 	ltrim(s);
 	rtrim(s);
+}
+
+static inline void strtolower(std::string& s) {
+	std::transform(s.begin(), s.end(), s.begin(), [](char c) -> char { return (char)std::tolower(c); });
 }

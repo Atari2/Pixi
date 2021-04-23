@@ -143,6 +143,7 @@ the command line interface by typing them as in the example below.
     -npl            Same as the current default, no sprite per level will be inserted, left dangling for compatibility reasons
     -d255spl		disables 255 sprite per level support (won't do the 1938 remap)
     -w              Enable asar warnings check, recommended to use when developing sprites
+	-no-config		Disable the use of the TOML configuration file for this run.
 
     -a  <asm>       Specify a custom asm directory (Default asm/)
     

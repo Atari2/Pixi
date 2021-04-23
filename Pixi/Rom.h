@@ -1,6 +1,8 @@
 #pragma once
 #include "Entities.h"
 
+void addIncSrcToFile(MemoryFile<char>& file, const std::vector<std::string>& toInclude);
+
 enum class MapperType : int {
 	LoRom, 
 	SA1Rom,
@@ -20,8 +22,10 @@ class Rom {
 	std::string m_name;
 	int m_size = 0;
 	ByteArray<uint8_t, MAX_ROM_SIZE> m_data;
-	size_t m_header_offset;
-	MapperType m_mapper;
+	size_t m_header_offset = 0;
+	MapperType m_mapper = MapperType::LoRom;
+	StructParams<uint8_t> m_main_memory_files{};
+	StructParams<char> m_sprite_memory_files{};
 public:
 	Rom() = default;
 	Rom(std::string romname);
@@ -51,9 +55,49 @@ public:
 	size_t snes_to_pc(size_t address, bool header = true);
 	Pointer pointer_snes(int address, int size = 3, int bank = 0x00);
 	void clean(PixiConfig& cfg);
-	bool patch(Sprite& spr, const std::vector<std::string>& extraDefines, PixiConfig& cfg);
-	bool patch(const std::string& dir, const std::string& file, PixiConfig& cfg);
-	bool patch(const std::string& file, PixiConfig& cfg);
+	void set_main_memory_files(std::array<MemoryFile<uint8_t>, 11>&& arr);
+	void set_sprite_memory_files(MemoryFile<char>&& config, MemoryFile<char>&& shared);
+
+	// simple classic patch, a single asm file, no virtual memory files
+	bool patch_simple(std::string_view path, PixiConfig& cfg);
+	
+	// patches a single asm file and includes all the binary files that contain the sprite data
+	// e.g. pointers, settings, tweaker bytes, extra bytes size, etc.
+	bool patch_simple_main(std::string_view path, PixiConfig& cfg);
+
+	// patches a single memory file contaning the wrapper around a sprite
+	// also includes shared.asm and config.asm
+	// swallows the MemoryFile, taking ownership of it
+	bool patch_simple_sprite(MemoryFile<char>& sprite_patch, PixiConfig& cfg);
+
+	// calls patch_simple_main appending the dir before the filename
+	bool patch_main(const std::string& dir, const std::string& file, PixiConfig& cfg);
+
+	// prepares the memory file contaning the wrapper around spr and then calls patch_simple_sprite
+	bool patch_sprite(Sprite& spr, const std::vector<std::string>& extraDefines, PixiConfig& cfg);
+	
+	// generic memoryfile patch, swallows every memoryfiles passed, taking ownership
+	template <typename Unit, typename... Files>
+	bool patch(MemoryFile<Unit>& file, PixiConfig& cfg, Files&... files) {
+		StructParams<Unit> paramsWrap{ file, files... };
+		auto params = paramsWrap.construct(m_data.ptr_at(m_header_offset), MAX_ROM_SIZE, size());
+		if (!asar_patch_ex(params)) {
+			DEBUGMSG("Failure. Try fetch errors:\n");
+			int error_count;
+			auto errors = asar_geterrors(&error_count);
+			fmt::print("An error has been detected:\n");
+			for (int i = 0; i < error_count; i++)
+				fmt::print("{}\n", errors[i].fullerrdata);
+			ErrorState::pixi_error("An error was encountered in asar\n");
+		}
+		int warn_count = 0;
+		auto loc_warnings = asar_getwarnings(&warn_count);
+		for (int i = 0; i < warn_count; i++)
+			cfg.WarningList.push_back(loc_warnings[i].fullerrdata);
+		DEBUGFMTMSG("Patching for {} successful\n", paramsWrap.PatchLoc());
+		return true;
+	}
+
 	void close();
 	void run_checks();
 };

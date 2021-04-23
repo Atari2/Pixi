@@ -3,22 +3,22 @@
 
 class MeiMei {
 private:
-    static inline std::string name;
-    static inline Rom prev;
-    static inline ByteArray<uint8_t, 0x400> prevEx{};
-    static inline ByteArray<uint8_t, 0x400> nowEx{};
-    static inline bool always;
-    static inline bool debug;
-    static inline bool keepTemp;
-    static inline std::string sa1DefPath;
+    std::string name;
+    Rom prev;
+    ByteArray<uint8_t, 0x400> prevEx{};
+    ByteArray<uint8_t, 0x400> nowEx{};
+    bool always;
+    bool debug;
+    bool keepTemp;
+    std::string sa1DefPath{};
 
-    static bool patch(const std::string& patch_name, Rom& rom, PixiConfig& cfg);
-    static int run(Rom& rom, PixiConfig& cfg);
+    bool patch(MemoryFile<char>& patch_name, Rom& rom, PixiConfig& cfg, MemoryFile<char>& binfile);
+    int run(Rom& rom, PixiConfig& cfg);
 public:
-    static void setCfg(const MeiMeiConfig& cfg);
-    static void initialize(const std::string& name);
-    static int validate(bool revert);
-    static bool overSize(int size);
-    static int run(PixiConfig& cfg);
-    static void configureSa1Def(const std::string& pathToSa1Def);
+    MeiMei(const MeiMeiConfig& cfg, const std::string& name);
+    int validate(bool revert);
+    bool overSize(int size);
+    int run(PixiConfig& cfg);
+    void configureSa1Def(const std::string& pathToSa1Def);
+    ~MeiMei() = default;
 };

@@ -40,7 +40,7 @@ void SpritesData::patch_sprites(const std::vector<std::string>& extraDefines, Sv
 			break;
 		}
 		if (!duplicate)
-			rom().patch(spr, extraDefines, cfg);
+			rom().patch_sprite(spr, extraDefines, cfg);
 
 		if (spr.level < 0x200 && spr.number >= 0xB0 && spr.number < 0xC0) {
 			int pls_lv_addr = pls_data.level_ptrs[spr.level * 2] + (pls_data.level_ptrs[spr.level * 2 + 1] << 8);
@@ -193,69 +193,93 @@ void SpritesData::populate(PixiConfig& cfg)
 	}
 }
 
-void SpritesData::serialize(const PixiConfig& cfg)
+std::array<MemoryFile<uint8_t>, 11> SpritesData::serialize(const PixiConfig& cfg)
 {
-	ErrorState::debug("Try create binary tables\n");
+	DEBUGMSG("Try create binary tables\n");
 	auto& path = cfg.m_Paths[PathType::Asm];
-	write_all(cfg.versionflag, path, "_versionflag.bin", 4);
+	MemoryFile<uint8_t> version{ path + "_versionflag.bin" };
+	MemoryFile<uint8_t> perlevellvlptrs{ path + "_PerLevelLvlPtrs.bin" };
+	MemoryFile<uint8_t> perlevelsprptrs{ path + "_PerLevelSprPtrs.bin" };
+	MemoryFile<uint8_t> perlevelt{ path + "_PerLevelT.bin" };
+	MemoryFile<uint8_t> perlevelcustomptrtable{ path + "_PerLevelCustomPtrTable.bin" };
+	MemoryFile<uint8_t> defaulttables{ path + "_DefaultTables.bin" };
+	MemoryFile<uint8_t> customstatusptr{ path + "_CustomStatusPtr.bin" };
+	MemoryFile<uint8_t> clusterptr{ path + "_ClusterPtr.bin" };
+	MemoryFile<uint8_t> extendedptr{ path + "_ExtendedPtr.bin" };
+	MemoryFile<uint8_t> extendedcapeptr{ path + "_ExtendedCapePtr.bin" };
+	MemoryFile<uint8_t> customsize{ path + "_CustomSize.bin" };
+	write_all(cfg.versionflag, version, 4);
 	if (cfg.PerLevel) {
-		write_all(pls_data.level_ptrs, path, "_PerLevelLvlPtrs.bin", 0x400);
+		write_all(pls_data.level_ptrs, perlevellvlptrs, 0x400);
 		if (pls_data.data_addr == 0) {
 			ByteArray<uint8_t, 1> dummy{ 0xFF };
-			write_all(dummy, path, "_PerLevelSprPtrs.bin", 1);
-			write_all(dummy, path, "_PerLevelT.bin", 1);
-			write_all(dummy, path, "_PerLevelCustomPtrTable.bin", 1);
+			write_all(dummy, perlevelsprptrs, 1);
+			write_all(dummy, perlevelt, 1);
+			write_all(dummy, perlevelcustomptrtable, 1);
 		}
 		else {
-			write_all(pls_data.sprite_ptrs, path, "_PerLevelSprPtrs.bin", pls_data.sprite_ptrs_addr);
-			write_all(pls_data.data, path, "_PerLevelT.bin", pls_data.data_addr);
-			write_all(pls_data.pls_pointers, path, "_PerLevelCustomPtrTable.bin", pls_data.data_addr);
-			ErrorState::debug("Per-level sprites data size : 0x400+0x{:04X}+2*0x{:04X} = {:04X}\n", pls_data.sprite_ptrs_addr,
+			write_all(pls_data.sprite_ptrs, perlevelsprptrs, pls_data.sprite_ptrs_addr);
+			write_all(pls_data.data, perlevelt, pls_data.data_addr);
+			write_all(pls_data.pls_pointers, perlevelcustomptrtable, pls_data.data_addr);
+			DEBUGFMTMSG("Per-level sprites data size : 0x400+0x{:04X}+2*0x{:04X} = {:04X}\n", pls_data.sprite_ptrs_addr,
 				pls_data.data_addr, 0x400 + pls_data.sprite_ptrs_addr + 2 * pls_data.data_addr);
 		}
-		write_long_table(normal().cbegin() + 0x2000, path, "_DefaultTables.bin");
+		write_long_table(normal().cbegin() + 0x2000, defaulttables);
 	}
 	else {
-		write_long_table(normal().cbegin(), path, "_DefaultTables.bin");
+		write_long_table(normal().cbegin(), defaulttables);
 	}
 
 	ByteArray<uint8_t, 0x100 * 15> customstatusptrs{};
 	for (int i = 0, j = cfg.PerLevel ? 0x2000 : 0; i < 0x100 * 5; i += 5, j++) {
 		memcpy(customstatusptrs.ptr_at(i * 3), &normal()[j].ptrs, 15);
 	}
-	write_all(customstatusptrs, path, "_CustomStatusPtr.bin", 0x100 * 15);
+	write_all(customstatusptrs, customstatusptr, 0x100 * 15);
 
 	ByteArray<uint8_t, Sprite::SPRITE_COUNT * 3> file{};
 	for (int i = 0; i < Sprite::SPRITE_COUNT; i++) {
 		memcpy(file.ptr_at(i * 3), &cluster()[i].table.main, 3);
 	}
-	write_all(file, path, "_ClusterPtr.bin", Sprite::SPRITE_COUNT * 3);
+	write_all(file, clusterptr, Sprite::SPRITE_COUNT * 3);
 
 	for (int i = 0; i < Sprite::SPRITE_COUNT; i++) {
 		memcpy(file.ptr_at(i * 3), &extended()[i].table.main, 3);
 	}
-	write_all(file, path, "_ExtendedPtr.bin", Sprite::SPRITE_COUNT * 3);
+	write_all(file, extendedptr, Sprite::SPRITE_COUNT * 3);
 	for (int i = 0; i < Sprite::SPRITE_COUNT; i++) {
 		memcpy(file.ptr_at(i * 3), &extended()[i].extended_cape_ptr, 3);
 	}
-	write_all(file, path, "_ExtendedCapePtr.bin", Sprite::SPRITE_COUNT * 3);
+	write_all(file, extendedcapeptr, Sprite::SPRITE_COUNT * 3);
 
-	ErrorState::debug("Binary tables created\n");
+	DEBUGMSG("Binary tables created\n");
 
 	ByteArray<uint8_t, 0x200> extra_bytes(0x00);
 	serialize_subfiles(cfg, extra_bytes);
-	write_all(extra_bytes, path, "_CustomSize.bin", 0x200);
+	write_all(extra_bytes, customsize, 0x200);
+	return std::array{
+		std::move(version),
+		std::move(perlevellvlptrs),
+		std::move(perlevelsprptrs),
+		std::move(perlevelcustomptrtable),
+		std::move(perlevelt),
+		std::move(defaulttables),
+		std::move(customstatusptr),
+		std::move(clusterptr),
+		std::move(extendedptr),
+		std::move(extendedcapeptr),
+		std::move(customsize)
+	};
 }
 
 void SpritesData::serialize_subfiles(const PixiConfig& cfg, ByteArray<uint8_t, 0x200>& extra_bytes) {
 	std::vector<Map16> map{};
 	map.reserve(MAP16_SIZE);
-	ErrorState::debug("Try create romname files.\n");
+	DEBUGMSG("Try create romname files.\n");
 	FILE* s16 = open_subfile(cfg.RomName, "s16", "wb");
 	FILE* ssc = open_subfile(cfg.RomName, "ssc", "w");
 	FILE* mwt = open_subfile(cfg.RomName, "mwt", "w");
 	FILE* mw2 = open_subfile(cfg.RomName, "mw2", "wb");
-	ErrorState::debug("Romname files opened.\n");
+	DEBUGMSG("Romname files opened.\n");
 
 	if (!cfg.m_Extensions[ExtType::Ssc].empty()) {
 		std::ifstream fin(cfg.m_Extensions[ExtType::Ssc]);
@@ -377,18 +401,18 @@ void SpritesData::serialize_subfiles(const PixiConfig& cfg, ByteArray<uint8_t, 0
 	fclose(mw2);
 }
 
-void SpritesData::write_long_table(Svect::const_iterator spr, const std::string& dir, std::string_view filename)
+void SpritesData::write_long_table(Svect::const_iterator spr, MemoryFile<uint8_t>& path)
 {
 	static ByteArray<uint8_t, 0x10> dummy{ 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF };
 	ByteArray<uint8_t, 0x100 * 0x10> file{};
 	if (is_empty_table(spr, 0x100)) {
-		write_all(dummy, dir, filename.data(), 0x10);
+		write_all(dummy, path, 0x10);
 	}
 	else {
 		for (int i = 0; i < 0x100; i++) {
 			memcpy(file.ptr_at(i * 0x10), &spr[i].table, 0x10);
 		}
-		write_all(file, dir, filename.data(), 0x100 * 0x10);
+		write_all(file, path, 0x100 * 0x10);
 	}
 }
 
@@ -406,4 +430,3 @@ void SpritesData::patch_sprites_wrap(const std::vector<std::string>& extraDefine
 	patch_sprites(extraDefines, cluster(), cluster().size(), cfg);
 	patch_sprites(extraDefines, extended(), extended().size(), cfg);
 }
-

@@ -10,13 +10,12 @@
 constexpr auto SPR_ADDR_LIMIT = 0x800;
 
 void MeiMei::configureSa1Def(const std::string& pathToSa1Def) {
-    std::string escapedPath = escapeDefines(pathToSa1Def);
-    MeiMei::sa1DefPath = escapedPath;
+    sa1DefPath = escapeDefines(pathToSa1Def);
 }
 
-bool MeiMei::patch(const std::string& patch_name, Rom& rom, PixiConfig& cfg) {
-    rom.patch(patch_name, cfg);
-    if (MeiMei::debug) {
+bool MeiMei::patch(MemoryFile<char>& patch, Rom& rom, PixiConfig& cfg, MemoryFile<char>& binfile) {
+    rom.patch(patch, cfg, binfile);
+    if (debug) {
         int print_count = 0;
         const char* const* prints = asar_getprints(&print_count);
         for (int i = 0; i < print_count; ++i) {
@@ -26,16 +25,13 @@ bool MeiMei::patch(const std::string& patch_name, Rom& rom, PixiConfig& cfg) {
     return true;
 }
 
-void MeiMei::setCfg(const MeiMeiConfig& cfg)
+MeiMei::MeiMei(const MeiMeiConfig& cfg, const std::string& rom_name) : 
+    name(rom_name),
+    prev(name),
+    always(cfg.always),
+    debug(cfg.debug),
+    keepTemp(cfg.keep)
 {
-    MeiMei::always = cfg.always;
-    MeiMei::debug = cfg.debug;
-    MeiMei::keepTemp = cfg.keep;
-}
-
-void MeiMei::initialize(const std::string& rom_name) {
-    MeiMei::name = rom_name;
-    prev = std::move(Rom{ MeiMei::name });
     prevEx.fill(0x00);
     nowEx.fill(0x00);
     if (prev.read_byte(0x07730F) == 0x42) {
@@ -43,6 +39,7 @@ void MeiMei::initialize(const std::string& rom_name) {
         prevEx.write(prev.data().ptr_at(addr), prevEx.size());
     }
 }
+
 
 int MeiMei::validate(bool revert) {
     if (revert) return 1;
@@ -58,12 +55,12 @@ bool MeiMei::overSize(int size) {
 }
 
 int MeiMei::run(PixiConfig& cfg) {
-    Rom rom(MeiMei::name);
+    Rom rom(name);
     if (!ErrorState::asar_init_wrap()) {
         ErrorState::pixi_error("Error: Asar library is missing or couldn't be initialized, please redownload the tool or add the dll.\n");
     }
 
-    int returnValue = MeiMei::run(rom, cfg);
+    int returnValue = run(rom, cfg);
 
     if (returnValue) {
         prev.close();
@@ -78,7 +75,7 @@ int MeiMei::run(PixiConfig& cfg) {
 }
 
 int MeiMei::run(Rom& rom, PixiConfig& cfg) {
-    Rom now(MeiMei::name);
+    Rom now(name);
     if (prev.read_byte(0x07730F) == 0x42) {
         int addr = now.snes_to_pc(now.read_long(0x07730C), false);
         nowEx.write(now.data().ptr_at(addr), 0x400);
@@ -87,18 +84,18 @@ int MeiMei::run(Rom& rom, PixiConfig& cfg) {
     bool changeEx = false;
     for (int i = 0; i < 0x400; i++) {
         if (prevEx[i] != nowEx[i]) {
-            ErrorState::debug("Extra byte counts changed: 0x{:X} {:X} {:X}\n", i, prevEx[i], nowEx[i]);
+            DEBUGFMTMSG("Extra byte counts changed: 0x{:X} {:X} {:X}\n", i, prevEx[i], nowEx[i]);
             changeEx = true;
             break;
         }
     }
 
-    bool revert = changeEx || MeiMei::always;
+    bool revert = changeEx || always;
     if (changeEx) {
         printf("\nExtra bytes change detected\n");
     }
 
-    if (changeEx || MeiMei::always) {
+    if (revert) {
         ByteArray<uint8_t, SPR_ADDR_LIMIT> sprAllData{};
         sprAllData.fill(0x00);
         ByteArray<uint8_t, 3> sprCommonData{};
@@ -189,63 +186,51 @@ int MeiMei::run(Rom& rom, PixiConfig& cfg) {
             prevOfs++;
             if (changeData) {
                 // create sprite data binary
-                std::string binaryFileName = fmt::format("_tmp_bin_{:X}.bin", lv);
-                FILE* binFile = fileopen(binaryFileName.c_str(), "wb");
-                if (sprAllData.size() > 0) {
-                    fwrite(sprAllData.start(), 1, sprAllData.size(), binFile);
-                }
-                fclose(binFile);
+                MemoryFile<char> binFile{ fmt::format("_tmp_bin_{:X}.bin", lv), keepTemp };
+                MemoryFile<char> spriteDataPatch{ fmt::format("_tmp_{:X}.asm", lv), keepTemp };
+                binFile.insertByteChar(sprAllData.start(), sprAllData.size());
 
                 // create patch for sprite data binary
-                std::string fileName = fmt::format("_tmp_{:X}.asm", lv);
-                FILE* spriteDataPatch = fileopen(binaryFileName.c_str(), "wb");
                 std::string binaryLabel = fmt::format("SpriteData{:X}", lv);
                 std::string levelBankAddress = fmt::format("{:06X}", now.pc_to_snes(0x077100 + lv, false));
                 std::string levelWordAddress = fmt::format("{:06X}", now.pc_to_snes(0x02EC00 + lv * 2, false));
 
-                    // create actual asar patch
-                fmt::print(spriteDataPatch, "incsrc \"{}\"\n\n", MeiMei::sa1DefPath);
-                fmt::print(spriteDataPatch, "!oldDataPointer = read2(${})|(read1(${})<<16)\n", levelWordAddress, levelBankAddress);
-                fmt::print(spriteDataPatch, "!oldDataSize = read2(pctosnes(snestopc(!oldDataPointer)-4))+1\n");
-                fmt::print(spriteDataPatch, "autoclean !oldDataPointer\n\n");
-                fmt::print(spriteDataPatch, "org ${}\n", levelBankAddress);
-                fmt::print(spriteDataPatch, "\tdb {}>>16\n\n", binaryLabel);
-                fmt::print(spriteDataPatch, "org ${}\n", levelWordAddress);
-                fmt::print(spriteDataPatch, "\tdw {}\n\n", binaryLabel);
-                fmt::print(spriteDataPatch, "freedata cleaned\n");
-                fmt::print(spriteDataPatch, "{}:\n", binaryLabel);
-                fmt::print(spriteDataPatch, "\t!newDataPointer = {}\n", binaryLabel);
-                fmt::print(spriteDataPatch, "\tincbin {}\n", binaryFileName);
-                fmt::print(spriteDataPatch, "{}_end:\n", binaryLabel);
-                fmt::print(spriteDataPatch, "\tprint \"Data pointer  $\",hex(!oldDataPointer),\" : $\",hex(!newDataPointer)\n");
-                fmt::print(spriteDataPatch, "\tprint \"Data size     $\",hex(!oldDataSize),\" : $\",hex({}_end-{}-1)\n", binaryLabel, binaryLabel);
+                // create actual asar patch
+                spriteDataPatch.insertData("incsrc \"{}\"\n\n", sa1DefPath);
+                spriteDataPatch.insertData("!oldDataPointer = read2(${})|(read1(${})<<16)\n", levelWordAddress, levelBankAddress);
+                spriteDataPatch.insertData("!oldDataSize = read2(pctosnes(snestopc(!oldDataPointer)-4))+1\n");
+                spriteDataPatch.insertData("autoclean !oldDataPointer\n\n");
+                spriteDataPatch.insertData("org ${}\n", levelBankAddress);
+                spriteDataPatch.insertData("\tdb {}>>16\n\n", binaryLabel);
+                spriteDataPatch.insertData("org ${}\n", levelWordAddress);
+                spriteDataPatch.insertData("\tdw {}\n\n", binaryLabel);
+                spriteDataPatch.insertData("freedata cleaned\n");
+                spriteDataPatch.insertData("{}:\n", binaryLabel);
+                spriteDataPatch.insertData("\t!newDataPointer = {}\n", binaryLabel);
+                spriteDataPatch.insertData("\tincbin {}\n", binFile.Path());
+                spriteDataPatch.insertData("{}_end:\n", binaryLabel);
+                spriteDataPatch.insertData("\tprint \"Data pointer  $\",hex(!oldDataPointer),\" : $\",hex(!newDataPointer)\n");
+                spriteDataPatch.insertData("\tprint \"Data size     $\",hex(!oldDataSize),\" : $\",hex({}_end-{}-1)\n", binaryLabel, binaryLabel);
 
-                fclose(spriteDataPatch);
-
-                if (MeiMei::debug) {
+                if (debug) {
                     fmt::print("__________________________________\n"); 
                     fmt::print("Fixing sprite data for level {:X}", lv);
                 }
 
-                if (!MeiMei::patch(fileName.c_str(), rom, cfg)) {
+                if (!patch(spriteDataPatch, rom, cfg, binFile)) {
                     fmt::print("An error occured when patching sprite data with asar.");
                     return validate(revert);
                 }
 
-                if (MeiMei::debug) {
+                if (debug) {
                     fmt::print("Done!\n");
-                }
-
-                if (!MeiMei::keepTemp) {
-                    remove(binaryFileName.c_str());
-                    remove(fileName.c_str());
                 }
 
                 remapped[lv] = true;
             }
         }
 
-        if (MeiMei::debug) {
+        if (debug) {
             fmt::print("__________________________________\n");
         }
 
