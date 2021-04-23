@@ -133,7 +133,8 @@ struct PixiConfig {
 	}
 	void parse_config_file(bool overwrite);
 	void parse_noargs_config_file();
-	bool parse_cmd_line_args(int argc, char* argv[]);
+	std::pair<std::vector<std::string>, bool> transform_args(int argc, char* argv[]);
+	void parse_cmd_line_args(const std::vector<std::string>& vargv);
 	void correct_paths();
 	bool areConfigFlagsToggled();
 	MemoryFile<char> create_config_file();

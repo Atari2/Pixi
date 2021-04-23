@@ -11,7 +11,9 @@ PixiConfig::PixiConfig(int argc, char* argv[]) {
 		set_rom_name(argc, argv);
 	}
 	else {
-		parse_config_file(parse_cmd_line_args(argc, argv));
+		auto [args, overwrite] = transform_args(argc, argv);
+		parse_config_file(overwrite);
+		parse_cmd_line_args(args);
 	}
 	GlobalKeepFlag = KeepFiles;
 }
@@ -135,18 +137,31 @@ bool PixiConfig::set_ext(Iter& iter, Iter& end, std::string_view pre, ExtType ty
 	return false;
 }
 
-bool PixiConfig::parse_cmd_line_args(int argc, char* argv[])
-{
+std::pair<std::vector<std::string>, bool> PixiConfig::transform_args(int argc, char* argv[]) {
 	bool overwrite = false;
-
 	PixiExe = argv[0];
 	RomName = argv[argc - 1];
+	if (PixiExe[0] == '.' && PixiExe[1] == '/')
+		PixiExe = PixiExe.substr(2);
 	std::vector<std::string> vargv{};
 	vargv.reserve(argc - 2);
 	for (int i = 1; i < argc - 1; i++)
 		vargv.push_back(argv[i]);
 	Iter end = vargv.cend();
 
+	auto res = std::find_if(vargv.cbegin(), vargv.cend(), [](const std::string& par) {
+		return par == "-no-config";
+		});
+	if (res != end) {
+		vargv.erase(res);
+		overwrite = true;
+	}
+	return std::make_pair(vargv, overwrite);
+}
+
+void PixiConfig::parse_cmd_line_args(const std::vector<std::string>& vargv)
+{
+	Iter end = vargv.cend();
 	for (Iter it = vargv.cbegin(); it != end; it++) {
 		const std::string& arg = *it;
 		if (arg == "-h" || arg == "--help")
@@ -174,9 +189,6 @@ bool PixiConfig::parse_cmd_line_args(int argc, char* argv[])
 		}
 		else if (arg == "-ext-off") {
 			ExtMod = false;
-		}
-		else if (arg == "-no-config") {
-			overwrite = true;
 		}
 		else if (arg == "-meimei-a") {
 			m_meimei.always = true;
@@ -216,7 +228,6 @@ bool PixiConfig::parse_cmd_line_args(int argc, char* argv[])
 			ErrorState::pixi_error("Invalid command line option \"{}\"\n", arg);
 		}
 	}
-	return overwrite;
 }
 
 void PixiConfig::correct_paths() {
