@@ -36,9 +36,9 @@ public:
 	}
 
 	void populate(PixiConfig& cfg);
-	std::array<MemoryFile<uint8_t>, 11> serialize(const PixiConfig& cfg);
+	void serialize(const PixiConfig& cfg, SpriteMemoryFiles& files);
 	void serialize_subfiles(const PixiConfig& cfg, ByteArray<uint8_t, 0x200>& extra_bytes);
-	void write_long_table(Svect::const_iterator spr, MemoryFile<uint8_t>& path);
+	void write_long_table(Svect::const_iterator spr, MemoryFile& path);
 	bool is_empty_table(Svect::const_iterator spr, int size);
 	void patch_sprites_wrap(const std::vector<std::string>& extraDefines, PixiConfig& cfg);
 

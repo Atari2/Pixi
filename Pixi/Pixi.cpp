@@ -14,11 +14,12 @@ int main(int argc, char* argv[]) {
 	SpritesData sprdata{ rom, cfg };
 	sprdata.populate(cfg);
 	rom.clean(cfg);
-	rom.set_sprite_memory_files(cfg.create_config_file(), cfg.create_shared_patch());
+	cfg.create_config_file(rom.config_patch());
+	cfg.create_shared_patch(rom.shared_patch());
 	sprdata.patch_sprites_wrap(extraDefines, cfg);
 	cfg.emit_warnings();
 	DEBUGMSG("Sprites successfully patched.\n");
-	rom.set_main_memory_files(sprdata.serialize(cfg));
+	sprdata.serialize(cfg, rom.main_memory_files());
 	rom.patch_main(cfg.m_Paths[PathType::Asm], "main.asm", cfg);
 	rom.patch_main(cfg.m_Paths[PathType::Asm], "cluster.asm", cfg);
 	rom.patch_main(cfg.m_Paths[PathType::Asm], "extended.asm", cfg);

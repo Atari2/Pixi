@@ -29,7 +29,16 @@ struct MeiMeiConfig {
 
 struct Paths {
 	static constexpr int ArrSize = FromEnum(PathType::SIZE);
-	static constexpr std::array<std::string_view, ArrSize> prefixes{ "-r", "-sp", "-g", "-sh", "-l", "-a", "-e", "-c" };
+	static constexpr std::array<std::pair<std::string_view, PathType>, ArrSize> prefixes{ {
+		{"-r", PathType::Routines}, 
+		{"-sp",PathType::Sprites}, 
+		{"-g", PathType::Generators},
+		{"-sh", PathType::Shooters},
+		{"-l", PathType::List}, 
+		{"-a", PathType::Asm},
+		{"-e", PathType::Extended}, 
+		{"-c", PathType::Cluster}
+	}};
 	std::string list{ "list.txt" };
 	std::string pasm{ "asm/" };
 	std::string sprites{ "sprites/" };
@@ -68,7 +77,12 @@ struct Paths {
 
 struct Extensions {
 	static constexpr int ArrSize = FromEnum(ExtType::SIZE);
-	static constexpr std::array<std::string_view, ArrSize> prefixes{ "-ssc", "-mwt", "-mw2", "-s16" };
+	static constexpr std::array<std::pair<std::string_view, ExtType>, ArrSize> prefixes{ {
+		{"-ssc", ExtType::Ssc},
+		{"-mwt", ExtType::Mwt},
+		{"-mw2", ExtType::Mw2},
+		{"-s16", ExtType::S16}
+	} };
 	std::string ssc{};
 	std::string mwt{};
 	std::string mw2{};
@@ -137,13 +151,19 @@ struct PixiConfig {
 	void parse_cmd_line_args(const std::vector<std::string>& vargv);
 	void correct_paths();
 	bool areConfigFlagsToggled();
-	MemoryFile<char> create_config_file();
-	MemoryFile<char> create_shared_patch();
+	void create_config_file(MemoryFile& config);
+	void create_shared_patch(MemoryFile& shared);
 	void create_lm_restore();
 	std::vector<std::string> list_extra_asm(const char* folder);
 	void emit_warnings();
-	bool set_path(Iter& iter, Iter& end, std::string_view pre, PathType type);
-	bool set_ext(Iter& iter, Iter& end, std::string_view pre, ExtType type);
+	template <typename Type, typename Arr>
+	bool check_pre(Iter& iter, Iter& end, std::string_view pre, Type type, Arr& arr) {
+		if (*iter == pre) {
+			arr[type] = require_next(iter, end);
+			return true;
+		}
+		return false;
+	}
 	void print_help();
 	const std::string& require_next(Iter& iter, Iter& end);
 

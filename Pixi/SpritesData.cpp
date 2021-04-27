@@ -191,21 +191,21 @@ void SpritesData::populate(PixiConfig& cfg)
 	}
 }
 
-std::array<MemoryFile<uint8_t>, 11> SpritesData::serialize(const PixiConfig& cfg)
+void SpritesData::serialize(const PixiConfig& cfg, SpriteMemoryFiles& files)
 {
 	DEBUGMSG("Try create binary tables\n");
-	auto& path = cfg.m_Paths[PathType::Asm];
-	MemoryFile<uint8_t> version{ path + "_versionflag.bin" };
-	MemoryFile<uint8_t> perlevellvlptrs{ path + "_PerLevelLvlPtrs.bin" };
-	MemoryFile<uint8_t> perlevelsprptrs{ path + "_PerLevelSprPtrs.bin" };
-	MemoryFile<uint8_t> perlevelt{ path + "_PerLevelT.bin" };
-	MemoryFile<uint8_t> perlevelcustomptrtable{ path + "_PerLevelCustomPtrTable.bin" };
-	MemoryFile<uint8_t> defaulttables{ path + "_DefaultTables.bin" };
-	MemoryFile<uint8_t> customstatusptr{ path + "_CustomStatusPtr.bin" };
-	MemoryFile<uint8_t> clusterptr{ path + "_ClusterPtr.bin" };
-	MemoryFile<uint8_t> extendedptr{ path + "_ExtendedPtr.bin" };
-	MemoryFile<uint8_t> extendedcapeptr{ path + "_ExtendedCapePtr.bin" };
-	MemoryFile<uint8_t> customsize{ path + "_CustomSize.bin" };
+	files.SetPath(cfg.m_Paths[PathType::Asm]);
+	MemoryFile& version = files[SpriteFile::Version];
+	MemoryFile& perlevellvlptrs = files[SpriteFile::Perlevellvlptrs];
+	MemoryFile& perlevelsprptrs = files[SpriteFile::Perlevelsprptrs];
+	MemoryFile& perlevelt = files[SpriteFile::Perlevelt];
+	MemoryFile& perlevelcustomptrtable = files[SpriteFile::Perlevelcustomptrtable];
+	MemoryFile& defaulttables = files[SpriteFile::Defaulttables];
+	MemoryFile& customstatusptr = files[SpriteFile::Customstatusptr];
+	MemoryFile& clusterptr = files[SpriteFile::Clusterptr];
+	MemoryFile& extendedptr = files[SpriteFile::Extendedptr];
+	MemoryFile& extendedcapeptr = files[SpriteFile::Extendedcapeptr];
+	MemoryFile& customsize = files[SpriteFile::Customsize];
 	write_all(cfg.versionflag, version, 4);
 	if (cfg.PerLevel) {
 		write_all(pls_data.level_ptrs, perlevellvlptrs, 0x400);
@@ -254,19 +254,6 @@ std::array<MemoryFile<uint8_t>, 11> SpritesData::serialize(const PixiConfig& cfg
 	ByteArray<uint8_t, 0x200> extra_bytes(0x00);
 	serialize_subfiles(cfg, extra_bytes);
 	write_all(extra_bytes, customsize, 0x200);
-	return std::array{
-		std::move(version),
-		std::move(perlevellvlptrs),
-		std::move(perlevelsprptrs),
-		std::move(perlevelcustomptrtable),
-		std::move(perlevelt),
-		std::move(defaulttables),
-		std::move(customstatusptr),
-		std::move(clusterptr),
-		std::move(extendedptr),
-		std::move(extendedcapeptr),
-		std::move(customsize)
-	};
 }
 
 void SpritesData::serialize_subfiles(const PixiConfig& cfg, ByteArray<uint8_t, 0x200>& extra_bytes) {
@@ -399,7 +386,7 @@ void SpritesData::serialize_subfiles(const PixiConfig& cfg, ByteArray<uint8_t, 0
 	fclose(mw2);
 }
 
-void SpritesData::write_long_table(Svect::const_iterator spr, MemoryFile<uint8_t>& path)
+void SpritesData::write_long_table(Svect::const_iterator spr, MemoryFile& path)
 {
 	static ByteArray<uint8_t, 0x10> dummy{ 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF };
 	ByteArray<uint8_t, 0x100 * 0x10> file{};

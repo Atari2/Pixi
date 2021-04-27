@@ -15,12 +15,12 @@ PixiConfig::PixiConfig(int argc, char* argv[]) {
 		parse_config_file(overwrite);
 		parse_cmd_line_args(args);
 	}
-	GlobalKeepFlag = KeepFiles;
+	MemoryFile::GlobalKeepFlag = KeepFiles;
 }
 
 #ifdef _MSC_VER
 #pragma warning( push )
-#pragma warning( disable : 4866 )
+#pragma warning( disable : 4866)
 #endif
 void PixiConfig::parse_noargs_config_file() {
 	if (std::filesystem::exists("pixi_conf.toml")) {
@@ -55,7 +55,7 @@ void PixiConfig::parse_noargs_config_file() {
 			}
 			KeepFiles = config_table["keeptemp"].value_or(false);
 			PerLevel = config_table["perlevel"].value_or(false);
-			disable255Sprites= config_table["disable255sprites"].value_or(false);
+			disable255Sprites = config_table["disable255sprites"].value_or(false);
 			ExtMod = config_table["extmod"].value_or(true);
 			DisableMeiMei = config_table["disablemeimei"].value_or(false);
 			Warnings = config_table["warnings"].value_or(false);
@@ -70,7 +70,7 @@ void PixiConfig::parse_noargs_config_file() {
 		std::ofstream outfile{ "pixi_conf.toml" };
 		if (!outfile)
 			ErrorState::pixi_error("Couldn't read pixi_conf.toml, please check file permissions");
-		auto config_table = toml::table{{
+		auto config_table = toml::table{ {
 			{"paths", toml::table{{
 				{"routines", m_Paths[PathType::Routines]},
 				{"sprites", m_Paths[PathType::Sprites]},
@@ -121,24 +121,9 @@ const std::string& PixiConfig::require_next(Iter& iter, Iter& end) {
 	return *(++iter);
 }
 
-bool PixiConfig::set_path(Iter& iter, Iter& end, std::string_view pre, PathType type) {
-	if (*iter == pre) {
-		m_Paths[type] = require_next(iter, end);
-		return true;
-	}
-	return false;
-}
-
-bool PixiConfig::set_ext(Iter& iter, Iter& end, std::string_view pre, ExtType type) {
-	if (*iter == pre) {
-		m_Extensions[type] = require_next(iter, end);
-		return true;
-	}
-	return false;
-}
-
 std::pair<std::vector<std::string>, bool> PixiConfig::transform_args(int argc, char* argv[]) {
 	bool overwrite = false;
+	bool manual = false;
 	PixiExe = argv[0];
 	RomName = argv[argc - 1];
 	if (PixiExe[0] == '.' && PixiExe[1] == '/')
@@ -210,21 +195,14 @@ void PixiConfig::parse_cmd_line_args(const std::vector<std::string>& vargv)
 		}
 #endif
 		else {
-			bool set = false;
-			for (int i = 0; i < Paths::ArrSize; i++) {
-				if (set_path(it, end, Paths::prefixes[i], (PathType)i)) {
-					set = true;
-					break;
-				}
-			}
-			if (set) continue;
-			for (int i = 0; i < Extensions::ArrSize; i++) {
-				if (set_ext(it, end, Extensions::prefixes[i], (ExtType)i)) {
-					set = true;
-					break;
-				}
-			}
-			if (set) continue;
+			auto path = std::find_if(Paths::prefixes.cbegin(), Paths::prefixes.cend(), [&](auto& pre) {
+				return check_pre(it, end, pre.first, pre.second, m_Paths);
+				});
+			if (path != Paths::prefixes.cend()) continue;
+			auto ext = std::find_if(Extensions::prefixes.cbegin(), Extensions::prefixes.cend(), [&](auto& pre) {
+				return check_pre(it, end, pre.first, pre.second, m_Extensions);
+				});
+			if (ext != Extensions::prefixes.cend()) continue;
 			ErrorState::pixi_error("Invalid command line option \"{}\"\n", arg);
 		}
 	}
@@ -232,13 +210,13 @@ void PixiConfig::parse_cmd_line_args(const std::vector<std::string>& vargv)
 
 void PixiConfig::correct_paths() {
 	DEBUGFMTMSG("{}\n", PixiExe)
-	for (int i = 0; i < FromEnum(PathType::SIZE); i++) {
-		if (i == FromEnum(PathType::List))
-			set_paths_relative_to(m_Paths[i], RomName);
-		else
-			set_paths_relative_to(m_Paths[i], PixiExe);
-		DEBUGFMTMSG("Paths[{}] = {}\n", i, m_Paths[i]);
-	}
+		for (int i = 0; i < FromEnum(PathType::SIZE); i++) {
+			if (i == FromEnum(PathType::List))
+				set_paths_relative_to(m_Paths[i], RomName);
+			else
+				set_paths_relative_to(m_Paths[i], PixiExe);
+			DEBUGFMTMSG("Paths[{}] = {}\n", i, m_Paths[i]);
+		}
 	AsmDir = m_Paths[FromEnum(PathType::Asm)];
 	AsmDirPath = cleanPathTrail(AsmDir);
 
@@ -252,36 +230,35 @@ bool PixiConfig::areConfigFlagsToggled() {
 	return PerLevel || disable255Sprites || true;
 }
 
-MemoryFile<char> PixiConfig::create_config_file()
+void PixiConfig::create_config_file(MemoryFile& config)
 {
-	MemoryFile<char> file{ AsmDirPath + "/config.asm" };
+	config.SetPath(AsmDirPath + "/config.asm");
 	if (areConfigFlagsToggled()) {
-		file.insertData("!PerLevel = {:d}\n", (int)PerLevel);
-		file.insertData("!Disable255SpritesPerLevel = {:d}", (int)disable255Sprites);
+		config.insertString("!PerLevel = {:d}\n", (int)PerLevel);
+		config.insertString("!Disable255SpritesPerLevel = {:d}", (int)disable255Sprites);
 	}
-	return file;
 }
 
-MemoryFile<char> PixiConfig::create_shared_patch()
+void PixiConfig::create_shared_patch(MemoryFile& shared)
 {
 	const std::string& routinepath = m_Paths[PathType::Routines];
 	std::string escapedRoutinepath = escapeDefines(routinepath, R"(\\\!)");
-	MemoryFile<char> shared_patch{ "shared.asm" };
-	shared_patch.insertData("macro include_once(target, base, offset)\n"
-		"	if !<base> != 1\n"
-		"		!<base> = 1\n"
+	shared.SetPath("shared.asm");
+	shared.insertString("macro include_once(path, routine_name, offset)\n"
+		"	if defined(\"<routine_name>\") == 0\n"
+		"		!<routine_name> = \"__pixi_<routine_name>_inserted\"\n"
 		"		pushpc\n"
 		"		if read3(<offset>+$03E05C) != $FFFFFF\n"
-		"			<base> = read3(<offset>+$03E05C)\n"
+		"			<routine_name> = read3(<offset>+$03E05C)\n"
 		"		else\n"
 		"			freecode cleaned\n"
-		"				global #<base>:\n"
-		"				print \"    Routine: <base> inserted at $\",pc\n"
-		"				namespace <base>\n"
-		"				incsrc \"<target>\"\n"
-		"               namespace off\n"
+		"				global #<routine_name>:\n"
+		"				print \"    Routine: <routine_name> inserted at $\",pc\n"
+		"				namespace <routine_name>\n"
+		"				incsrc \"<path>\"\n"
+		"				namespace off\n"
 		"			ORG <offset>+$03E05C\n"
-		"				dl <base>\n"
+		"				dl <routine_name>\n"
 		"		endif\n"
 		"		pullpc\n"
 		"	endif\n"
@@ -298,14 +275,13 @@ MemoryFile<char> PixiConfig::create_shared_patch()
 			}
 			if (nameEndWithAsmExtension(name)) {
 				name = name.substr(0, name.length() - 4);
-				shared_patch.insertData(
-					"!{} = 0\n"
-					"macro {}()\n"
-					"\t%include_once(\"{}{}.asm\", {}, ${:02X})\n"
-					"\tJSL {}\n"
+				shared.insertString(
+					"macro {0}()\n"
+					"\t%include_once(\"{1}{0}.asm\", {0}, ${2:02X})\n"
+					"\tJSL {0}\n"
 					"endmacro\n",
-					name, name, escapedRoutinepath, name, name, routine_count * 3,
-					name);
+					name, escapedRoutinepath, routine_count * 3
+				);
 				routine_count++;
 			}
 		}
@@ -314,7 +290,6 @@ MemoryFile<char> PixiConfig::create_shared_patch()
 		ErrorState::pixi_error("Trying to read folder \"{}\" returned \"{}\", aborting insertion\n", routinepath, err.what());
 	}
 	fmt::print("{} Shared routines registered in \"{}\"\n", routine_count, routinepath);
-	return shared_patch;
 }
 
 void PixiConfig::create_lm_restore()

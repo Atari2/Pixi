@@ -3,6 +3,7 @@
 
 class MeiMei {
 private:
+    constexpr static inline int SPR_ADDR_LIMIT = 0x800;
     std::string name;
     Rom prev;
     ByteArray<uint8_t, 0x400> prevEx{};
@@ -12,7 +13,7 @@ private:
     bool keepTemp;
     std::string sa1DefPath{};
 
-    bool patch(MemoryFile<char>& patch_name, Rom& rom, PixiConfig& cfg, MemoryFile<char>& binfile);
+    bool patch(MemoryFile& patch_name, Rom& rom, PixiConfig& cfg, MemoryFile& binfile);
     int run(Rom& rom, PixiConfig& cfg);
 public:
     MeiMei(const MeiMeiConfig& cfg, const std::string& name);

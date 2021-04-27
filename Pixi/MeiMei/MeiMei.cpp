@@ -7,13 +7,11 @@
 #include "MeiMei.h"
 
 
-constexpr auto SPR_ADDR_LIMIT = 0x800;
-
 void MeiMei::configureSa1Def(const std::string& pathToSa1Def) {
     sa1DefPath = escapeDefines(pathToSa1Def);
 }
 
-bool MeiMei::patch(MemoryFile<char>& patch, Rom& rom, PixiConfig& cfg, MemoryFile<char>& binfile) {
+bool MeiMei::patch(MemoryFile& patch, Rom& rom, PixiConfig& cfg, MemoryFile& binfile) {
     rom.patch(patch, cfg, binfile);
     if (debug) {
         int print_count = 0;
@@ -186,9 +184,9 @@ int MeiMei::run(Rom& rom, PixiConfig& cfg) {
             prevOfs++;
             if (changeData) {
                 // create sprite data binary
-                MemoryFile<char> binFile{ fmt::format("_tmp_bin_{:X}.bin", lv), keepTemp };
-                MemoryFile<char> spriteDataPatch{ fmt::format("_tmp_{:X}.asm", lv), keepTemp };
-                binFile.insertByteChar(sprAllData.start(), sprAllData.size());
+                MemoryFile binFile{ fmt::format("_tmp_bin_{:X}.bin", lv), keepTemp };
+                MemoryFile spriteDataPatch{ fmt::format("_tmp_{:X}.asm", lv), keepTemp };
+                binFile.insertBytes(sprAllData.start(), sprAllData.size());
 
                 // create patch for sprite data binary
                 std::string binaryLabel = fmt::format("SpriteData{:X}", lv);
@@ -196,21 +194,21 @@ int MeiMei::run(Rom& rom, PixiConfig& cfg) {
                 std::string levelWordAddress = fmt::format("{:06X}", now.pc_to_snes(0x02EC00 + lv * 2, false));
 
                 // create actual asar patch
-                spriteDataPatch.insertData("incsrc \"{}\"\n\n", sa1DefPath);
-                spriteDataPatch.insertData("!oldDataPointer = read2(${})|(read1(${})<<16)\n", levelWordAddress, levelBankAddress);
-                spriteDataPatch.insertData("!oldDataSize = read2(pctosnes(snestopc(!oldDataPointer)-4))+1\n");
-                spriteDataPatch.insertData("autoclean !oldDataPointer\n\n");
-                spriteDataPatch.insertData("org ${}\n", levelBankAddress);
-                spriteDataPatch.insertData("\tdb {}>>16\n\n", binaryLabel);
-                spriteDataPatch.insertData("org ${}\n", levelWordAddress);
-                spriteDataPatch.insertData("\tdw {}\n\n", binaryLabel);
-                spriteDataPatch.insertData("freedata cleaned\n");
-                spriteDataPatch.insertData("{}:\n", binaryLabel);
-                spriteDataPatch.insertData("\t!newDataPointer = {}\n", binaryLabel);
-                spriteDataPatch.insertData("\tincbin {}\n", binFile.Path());
-                spriteDataPatch.insertData("{}_end:\n", binaryLabel);
-                spriteDataPatch.insertData("\tprint \"Data pointer  $\",hex(!oldDataPointer),\" : $\",hex(!newDataPointer)\n");
-                spriteDataPatch.insertData("\tprint \"Data size     $\",hex(!oldDataSize),\" : $\",hex({}_end-{}-1)\n", binaryLabel, binaryLabel);
+                spriteDataPatch.insertString("incsrc \"{}\"\n\n", sa1DefPath);
+                spriteDataPatch.insertString("!oldDataPointer = read2(${})|(read1(${})<<16)\n", levelWordAddress, levelBankAddress);
+                spriteDataPatch.insertString("!oldDataSize = read2(pctosnes(snestopc(!oldDataPointer)-4))+1\n");
+                spriteDataPatch.insertString("autoclean !oldDataPointer\n\n");
+                spriteDataPatch.insertString("org ${}\n", levelBankAddress);
+                spriteDataPatch.insertString("\tdb {}>>16\n\n", binaryLabel);
+                spriteDataPatch.insertString("org ${}\n", levelWordAddress);
+                spriteDataPatch.insertString("\tdw {}\n\n", binaryLabel);
+                spriteDataPatch.insertString("freedata cleaned\n");
+                spriteDataPatch.insertString("{}:\n", binaryLabel);
+                spriteDataPatch.insertString("\t!newDataPointer = {}\n", binaryLabel);
+                spriteDataPatch.insertString("\tincbin {}\n", binFile.Path());
+                spriteDataPatch.insertString("{}_end:\n", binaryLabel);
+                spriteDataPatch.insertString("\tprint \"Data pointer  $\",hex(!oldDataPointer),\" : $\",hex(!newDataPointer)\n");
+                spriteDataPatch.insertString("\tprint \"Data size     $\",hex(!oldDataSize),\" : $\",hex({}_end-{}-1)\n", binaryLabel, binaryLabel);
 
                 if (debug) {
                     fmt::print("__________________________________\n"); 

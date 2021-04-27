@@ -1,7 +1,7 @@
 #pragma once
 #include "Entities.h"
 
-void addIncSrcToFile(MemoryFile<char>& file, const std::vector<std::string>& toInclude);
+void addIncSrcToFile(MemoryFile& file, const std::vector<std::string>& toInclude);
 
 enum class MapperType : int {
 	LoRom, 
@@ -24,8 +24,9 @@ class Rom {
 	ByteArray<uint8_t, MAX_ROM_SIZE> m_data;
 	size_t m_header_offset = 0;
 	MapperType m_mapper = MapperType::LoRom;
-	StructParams<uint8_t> m_main_memory_files{};
-	StructParams<char> m_sprite_memory_files{};
+	SpriteMemoryFiles m_main_memory_files{};
+	MemoryFile m_shared_patch{};
+	MemoryFile m_config_patch{};
 public:
 	Rom() = default;
 	Rom(std::string romname);
@@ -55,8 +56,9 @@ public:
 	size_t snes_to_pc(size_t address, bool header = true);
 	Pointer pointer_snes(int address, int size = 3, int bank = 0x00);
 	void clean(PixiConfig& cfg);
-	void set_main_memory_files(std::array<MemoryFile<uint8_t>, 11>&& arr);
-	void set_sprite_memory_files(MemoryFile<char>&& config, MemoryFile<char>&& shared);
+	SpriteMemoryFiles& main_memory_files();
+	MemoryFile& shared_patch();
+	MemoryFile& config_patch();
 
 	// simple classic patch, a single asm file, no virtual memory files
 	bool patch_simple(std::string_view path, PixiConfig& cfg);
@@ -67,8 +69,7 @@ public:
 
 	// patches a single memory file contaning the wrapper around a sprite
 	// also includes shared.asm and config.asm
-	// swallows the MemoryFile, taking ownership of it
-	bool patch_simple_sprite(MemoryFile<char>& sprite_patch, PixiConfig& cfg, std::string_view spr_name);
+	bool patch_simple_sprite(MemoryFile& sprite_patch, PixiConfig& cfg, std::string_view spr_name);
 
 	// calls patch_simple_main appending the dir before the filename
 	bool patch_main(const std::string& dir, const std::string& file, PixiConfig& cfg);
@@ -76,10 +77,10 @@ public:
 	// prepares the memory file contaning the wrapper around spr and then calls patch_simple_sprite
 	bool patch_sprite(Sprite& spr, const std::vector<std::string>& extraDefines, PixiConfig& cfg);
 	
-	// generic memoryfile patch, swallows every memoryfiles passed, taking ownership
-	template <typename Unit, typename... Files>
-	bool patch(MemoryFile<Unit>& file, PixiConfig& cfg, Files&... files) {
-		StructParams<Unit> paramsWrap{ file, files... };
+	// generic memoryfile patch
+	template <typename... Files>
+	bool patch(MemoryFile& file, PixiConfig& cfg, Files&... files) {
+		StructParams paramsWrap{ file, files... };
 		auto params = paramsWrap.construct(m_data.ptr_at(m_header_offset), MAX_ROM_SIZE, size());
 		if (!asar_patch_ex(params)) {
 			DEBUGMSG("Failure. Try fetch errors:\n");

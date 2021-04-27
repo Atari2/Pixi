@@ -155,7 +155,7 @@ void Rom::clean(PixiConfig& cfg)
 {
 	if (!strncmp((char*)m_data.ptr_at(snes_to_pc(0x02FFE2)), "STSD", 4)) { // already installed load old tables
 
-		MemoryFile<char> clean_patch{ cfg.AsmDir + "_cleanup.asm" };
+		MemoryFile clean_patch{ cfg.AsmDir + "_cleanup.asm" };
 
 		auto version = at(snes_to_pc(0x02FFE6));
 		auto flags = at(snes_to_pc(0x02FFE7));
@@ -167,7 +167,7 @@ void Rom::clean(PixiConfig& cfg)
 			// remove per level sprites
 			// version 1.30+
 			if (version >= 30) {
-				clean_patch.insertData(";Per-Level sprites\n");
+				clean_patch.insertString(";Per-Level sprites\n");
 				int level_table_address = pointer_snes(0x02FFF1).addr();
 				if (level_table_address != 0xFFFFFF && level_table_address != 0x000000) {
 					auto pls_addr = snes_to_pc(level_table_address);
@@ -185,7 +185,7 @@ void Rom::clean(PixiConfig& cfg)
 								continue;
 							}
 							if (!main_pointer.is_empty()) {
-								clean_patch.insertData("autoclean ${:06X}\t;{:03X}:{:02X}\n", main_pointer.addr(), level >> 1,
+								clean_patch.insertString("autoclean ${:06X}\t;{:03X}:{:02X}\n", main_pointer.addr(), level >> 1,
 									0xB0 + (i >> 1));
 							}
 						}
@@ -198,19 +198,19 @@ void Rom::clean(PixiConfig& cfg)
 					int level_table_address = (m_data[snes_to_pc(0x02FFEA + bank)] << 16) + 0x8000;
 					if (level_table_address == 0xFF8000)
 						continue;
-					clean_patch.insertData(";Per Level sprites for levels {:03X} - {:03X}\n", (bank * 0x80),
+					clean_patch.insertString(";Per Level sprites for levels {:03X} - {:03X}\n", (bank * 0x80),
 						((bank + 1) * 0x80) - 1);
 					for (int table_offset = 0x0B; table_offset < 0x8000; table_offset += 0x10) {
 						Pointer main_pointer = pointer_snes(level_table_address + table_offset);
 						if (main_pointer.addr() == 0xFFFFFF) {
-							clean_patch.insertData(";Encountered pointer to 0xFFFFFF, assuming there to be no sprites to clean!\n");
+							clean_patch.insertString(";Encountered pointer to 0xFFFFFF, assuming there to be no sprites to clean!\n");
 							break;
 						}
 						if (!main_pointer.is_empty()) {
-							clean_patch.insertData("autoclean ${:06X}\n", main_pointer.addr());
+							clean_patch.insertString("autoclean ${:06X}\n", main_pointer.addr());
 						}
 					}
-					clean_patch.insertData("\n");
+					clean_patch.insertString("\n");
 				}
 			}
 		}
@@ -221,41 +221,41 @@ void Rom::clean(PixiConfig& cfg)
 		const int limit = version >= 30 ? 0x1000 : (per_level_sprites_inserted ? 0xF00 : 0x1000);
 
 		// remove global sprites
-		clean_patch.insertData(";Global sprites: \n");
+		clean_patch.insertString(";Global sprites: \n");
 		int global_table_address = pointer_snes(0x02FFEE).addr();
 		if (pointer_snes(global_table_address).addr() != 0xFFFFFF) {
 			for (int table_offset = 0x08; table_offset < limit; table_offset += 0x10) {
 				Pointer init_pointer = pointer_snes(global_table_address + table_offset);
 				if (!init_pointer.is_empty()) {
-					clean_patch.insertData("autoclean ${:06X}\n", init_pointer.addr());
+					clean_patch.insertString("autoclean ${:06X}\n", init_pointer.addr());
 				}
 				Pointer main_pointer = pointer_snes(global_table_address + table_offset + 3);
 				if (!main_pointer.is_empty()) {
-					clean_patch.insertData("autoclean ${:06X}\n", main_pointer.addr());
+					clean_patch.insertString("autoclean ${:06X}\n", main_pointer.addr());
 				}
 			}
 		}
 
 		// remove global sprites' custom pointers
-		clean_patch.insertData(";Global sprite custom pointers: \n");
+		clean_patch.insertString(";Global sprite custom pointers: \n");
 		int pointer_table_address = pointer_snes(0x02FFFD).addr();
 		if (pointer_table_address != 0xFFFFFF && pointer_snes(pointer_table_address).addr() != 0xFFFFFF) {
 			for (int table_offset = 0; table_offset < 0x100 * 15; table_offset += 3) {
 				Pointer ptr = pointer_snes(pointer_table_address + table_offset);
 				if (!ptr.is_empty() && ptr.addr() != 0) {
-					clean_patch.insertData("autoclean ${:06X}\n", ptr.addr());
+					clean_patch.insertString("autoclean ${:06X}\n", ptr.addr());
 				}
 			}
 		}
 
 		// shared routines
-		clean_patch.insertData("\n\n;Routines:\n");
+		clean_patch.insertString("\n\n;Routines:\n");
 		for (int i = 0; i < 100; i++) {
 			int routine_pointer = pointer_snes(0x03E05C + i * 3).addr();
 			if (routine_pointer != 0xFFFFFF) {
-				clean_patch.insertData("autoclean ${:06X}\n", routine_pointer);
-				clean_patch.insertData("\torg ${:06X}\n", 0x03E05C + i * 3);
-				clean_patch.insertData("\tdl $FFFFFF\n");
+				clean_patch.insertString("autoclean ${:06X}\n", routine_pointer);
+				clean_patch.insertString("\torg ${:06X}\n", 0x03E05C + i * 3);
+				clean_patch.insertString("\tdl $FFFFFF\n");
 			}
 		}
 
@@ -263,23 +263,23 @@ void Rom::clean(PixiConfig& cfg)
 		if (version >= 1) {
 
 			// remove cluster sprites
-			clean_patch.insertData("\n\n;Cluster:\n");
+			clean_patch.insertString("\n\n;Cluster:\n");
 			int cluster_table = pointer_snes(0x00A68A).addr();
 			if (cluster_table != 0x9C1498) // check with default/uninserted address
 				for (int i = 0; i < Sprite::SPRITE_COUNT; i++) {
 					Pointer cluster_pointer = pointer_snes(cluster_table + 3 * i);
 					if (!cluster_pointer.is_empty())
-						clean_patch.insertData("autoclean ${:06X}\n", cluster_pointer.addr());
+						clean_patch.insertString("autoclean ${:06X}\n", cluster_pointer.addr());
 				}
 
 			// remove extended sprites
-			clean_patch.insertData("\n\n;Extended:\n");
+			clean_patch.insertString("\n\n;Extended:\n");
 			int extended_table = pointer_snes(0x029B1F).addr();
 			if (extended_table != 0x176FBC) // check with default/uninserted address
 				for (int i = 0; i < Sprite::SPRITE_COUNT; i++) {
 					Pointer extended_pointer = pointer_snes(extended_table + 3 * i);
 					if (!extended_pointer.is_empty())
-						clean_patch.insertData("autoclean ${:06X}\n", extended_pointer.addr());
+						clean_patch.insertString("autoclean ${:06X}\n", extended_pointer.addr());
 				}
 		}
 		// everything else is being cleaned by the main patch itself.
@@ -290,9 +290,9 @@ void Rom::clean(PixiConfig& cfg)
 	}
 }
 
-void addIncSrcToFile(MemoryFile<char>& file, const std::vector<std::string>& toInclude) {
+void addIncSrcToFile(MemoryFile& file, const std::vector<std::string>& toInclude) {
 	for (std::string const& incPath : toInclude) {
-		file.insertData("incsrc \"{}\"\n", incPath);
+		file.insertString("incsrc \"{}\"\n", incPath);
 	}
 }
 
@@ -324,7 +324,19 @@ bool Rom::patch_simple(std::string_view path, PixiConfig& cfg)
 }
 
 bool Rom::patch_simple_main(std::string_view path, PixiConfig& cfg) {
-	auto params = m_main_memory_files.construct(path, m_data.ptr_at(m_header_offset), MAX_ROM_SIZE, size());
+	StructParams paramsWrap{ m_main_memory_files[SpriteFile::Version],
+							 m_main_memory_files[SpriteFile::Perlevellvlptrs],
+							 m_main_memory_files[SpriteFile::Perlevelsprptrs],
+							 m_main_memory_files[SpriteFile::Perlevelt],
+							 m_main_memory_files[SpriteFile::Perlevelcustomptrtable],
+							 m_main_memory_files[SpriteFile::Defaulttables],
+							 m_main_memory_files[SpriteFile::Customstatusptr],
+							 m_main_memory_files[SpriteFile::Clusterptr],
+							 m_main_memory_files[SpriteFile::Extendedptr],
+							 m_main_memory_files[SpriteFile::Extendedcapeptr],
+							 m_main_memory_files[SpriteFile::Customsize]
+							};
+	auto params = paramsWrap.construct(path, m_data.ptr_at(m_header_offset), MAX_ROM_SIZE, size());
 	if (!asar_patch_ex(params)) {
 		DEBUGMSG("Failure. Try fetch errors:\n");
 		int error_count;
@@ -342,9 +354,24 @@ bool Rom::patch_simple_main(std::string_view path, PixiConfig& cfg) {
 	return true;
 }
 
-bool Rom::patch_simple_sprite(MemoryFile<char>& sprite_patch, PixiConfig& cfg, std::string_view spr_name)
+MemoryFile& Rom::shared_patch()
 {
-	auto params = m_sprite_memory_files.construct(sprite_patch, m_data.ptr_at(m_header_offset), MAX_ROM_SIZE, size());
+	return m_shared_patch;
+}
+
+MemoryFile& Rom::config_patch()
+{
+	return m_config_patch;
+}
+
+SpriteMemoryFiles& Rom::main_memory_files() {
+	return m_main_memory_files;
+}
+
+bool Rom::patch_simple_sprite(MemoryFile& sprite_patch, PixiConfig& cfg, std::string_view spr_name)
+{
+	StructParams paramsWrap(m_config_patch, m_shared_patch);
+	auto params = paramsWrap.construct(sprite_patch, m_data.ptr_at(m_header_offset), MAX_ROM_SIZE, size());
 	if (!asar_patch_ex(params)) {
 		DEBUGMSG("Failure. Try fetch errors:\n");
 		int error_count;
@@ -362,6 +389,7 @@ bool Rom::patch_simple_sprite(MemoryFile<char>& sprite_patch, PixiConfig& cfg, s
 	return true;
 }
 
+
 bool Rom::patch_main(const std::string& dir, const std::string& file, PixiConfig& cfg) {
 	std::string path = dir + file;
 	return patch_simple_main(path, cfg);
@@ -371,16 +399,16 @@ bool Rom::patch_sprite(Sprite& spr, const std::vector<std::string>& extraDefines
 	std::string escapedDir = escapeDefines(spr.directory);
 	std::string escapedAsmFile = escapeDefines(spr.asm_file);
 	std::string escapedAsmDir = escapeDefines(cfg.AsmDir);
-	MemoryFile<char> sprite_patch{ Sprite::TEMP_SPR_FILE };
-	sprite_patch.insertData("namespace nested on\n");
-	sprite_patch.insertData("incsrc \"{}sa1def.asm\"\n", escapedAsmDir);
+	MemoryFile sprite_patch{ Sprite::TEMP_SPR_FILE };
+	sprite_patch.insertString("namespace nested on\n");
+	sprite_patch.insertString("incsrc \"{}sa1def.asm\"\n", escapedAsmDir);
 	addIncSrcToFile(sprite_patch, extraDefines);
-	sprite_patch.insertData("incsrc \"shared.asm\"\n");
-	sprite_patch.insertData("incsrc \"{}_header.asm\"\n", escapedDir);
-	sprite_patch.insertData("freecode cleaned\n");
-	sprite_patch.insertData("SPRITE_ENTRY_{}:\n", spr.number);
-	sprite_patch.insertData("\tincsrc \"{}\"\n", escapedAsmFile);
-	sprite_patch.insertData("namespace nested off\n");
+	sprite_patch.insertString("incsrc \"shared.asm\"\n");
+	sprite_patch.insertString("incsrc \"{}_header.asm\"\n", escapedDir);
+	sprite_patch.insertString("freecode cleaned\n");
+	sprite_patch.insertString("SPRITE_ENTRY_{}:\n", spr.number);
+	sprite_patch.insertString("\tincsrc \"{}\"\n", escapedAsmFile);
+	sprite_patch.insertString("namespace nested off\n");
 
 	bool retval = patch_simple_sprite(sprite_patch, cfg, spr.asm_file);
 	std::map<std::string, int> ptr_map = {
@@ -432,7 +460,7 @@ bool Rom::patch_sprite(Sprite& spr, const std::vector<std::string>& extraDefines
 			}
 		}
 		else if (cfg.Debug) {
-			DEBUGFMTMSG("\t{}\n", print);
+			fmt::print("\t{}\n", print);
 		}
 	}
 	spr.table.init = Pointer(ptr_map["init"]);
@@ -466,16 +494,6 @@ bool Rom::patch_sprite(Sprite& spr, const std::vector<std::string>& extraDefines
 				spr.table.init.addr(), spr.table.main.addr());
 	}
 	return retval;
-}
-
-void Rom::set_main_memory_files(std::array<MemoryFile<uint8_t>, 11>&& arr)
-{
-	m_main_memory_files = StructParams{ arr };
-}
-
-void Rom::set_sprite_memory_files(MemoryFile<char>&& config, MemoryFile<char>&& shared)
-{
-	m_sprite_memory_files = StructParams<char>{ config, shared };
 }
 
 void Rom::close()
