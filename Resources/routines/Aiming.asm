@@ -1,11 +1,12 @@
-;Aiming Routine by MarioE. 
-
-;Input:  A   = 8 bit projectile speed
-;        $00 = 16 bit (shooter x pos - target x pos)
-;        $02 = 16 bit (shooter y pos - target y pos)
-;
-;Output: $00 = 8 bit X speed of projectile
-;        $02 = 8 bit Y speed of projectile
+;; Name: Aiming 
+;; Author: MarioE
+;; Input:  A   = 8 bit projectile speed
+;;         $00 = 16 bit (shooter x pos - target x pos)
+;;         $02 = 16 bit (shooter y pos - target y pos)
+;; Output: $00 = 8 bit X speed of projectile
+;;         $02 = 8 bit Y speed of projectile
+;; Clobbers: $04, $05, $06
+;; Description: Calculates speed for a projectile given a target position and a shooter position
 
 .aiming
 		PHX

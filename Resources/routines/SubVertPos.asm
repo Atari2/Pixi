@@ -1,9 +1,11 @@
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-; $B829 - vertical mario/sprite position check - shared
-; Y = 1 if mario below sprite??
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-					;org $03B829 
+;; Name: SubHorzPos
+;; Author: Unspecified at the time of writing 
+;; Input: None
+;; Output: Y   = 0 => Mario on top of the sprite,
+;;               1 => Mario below the sprite.
+;;         $0E = 16 bit difference beween Mario Y Pos - Sprite Y Pos.
+;; Clobbers: None
+;; Description: Checks if a sprite is below or above mario
 
 	LDY #$00               ;A:25A1 X:0007 Y:0001 D:0000 DB:03 S:01EA P:envMXdizCHC:0130 VC:085 00 FL:924
 	LDA $96                ;A:25A1 X:0007 Y:0000 D:0000 DB:03 S:01EA P:envMXdiZCHC:0146 VC:085 00 FL:924

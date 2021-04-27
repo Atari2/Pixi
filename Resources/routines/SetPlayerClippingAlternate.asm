@@ -1,12 +1,9 @@
-;; SetPlayerClippingAlternate:
-;;    Routine from imamelia
-;;    Custom player clipping routine. Sets up the player's interaction field
-;;    with 16-bit values as custom clipping 1.
-;;
-;; Output:
-;;    $00-$07: Clipping values
-;;
+;; Name: SetPlayerClippingAlternate
+;; Author: imamelia
+;; Input: None
+;; Output: $00-$07, clipping values
 ;; Clobbers: A
+;; Description: Custom player clipping routine. Sets up the player's interaction field with 16-bit values as custom clipping 1.
 
 .SetPlayerClippingAlternate
     PHX

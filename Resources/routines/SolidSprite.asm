@@ -1,27 +1,22 @@
-;################################################
-;# Custom Solid Sprite routine
-;# Original by imamelia, further enhanced by lx5 & TheBiob
-;# 
-;# Scratch ram $00-$0F will not be restored?.
-;# 
-;# input:
-;#      A = area width
-;#      Y = area height
-;#      $00 = multiply factor - 1
-;#      Carry = crush flag
-;#              clear = crush player if trapped inside
-;#              set = don't crush the player if trapped inside
-;#        
-;# Output:
-;#         $8A = Contact information
-;#              yx-mrlbt
-;#              t = touching top
-;#              b = touching bottom
-;#              l = touching left side
-;#              m = in the middle, set only if crush is off
-;#              r = touching right side
-;#              x = touching X middle range
-;#              y = touching Y middle range
+;; Name: SolidSprite
+;; Author: imamelia, lx5, TheBiob
+;; Input: A = area width
+;;        Y = area height
+;;        $00 = multiply factor - 1
+;;        Carry = crush flag
+;;              clear = crush player if trapped inside
+;;              set = don't crush the player if trapped inside
+;; Output: $8A = Contact information
+;;              yx-mrlbt
+;;              t = touching top
+;;              b = touching bottom
+;;              l = touching left side
+;;              m = in the middle, set only if crush is off
+;;              r = touching right side
+;;              x = touching X middle range
+;;              y = touching Y middle range
+;; Clobbers: $00-$0F
+;; Description: Gives the sprite a solid hitbox of the given size
 
 ?PlayerInteractRt:
     PHP

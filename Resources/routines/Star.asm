@@ -1,5 +1,10 @@
-;Routine that star-kills the sprite and gives Mario points.
-;Doesn't check whether Mario actually has a star.
+;; Name: Star
+;; Author: Unspecified at the time of writing
+;; Input: None
+;; Output: None
+;; Clobbers: None
+;; Description: Routine that star-kills the sprite and gives Mario points. Doesn't check whether Mario actually has a star.
+
 		PHB
 		PHK
 		PLB

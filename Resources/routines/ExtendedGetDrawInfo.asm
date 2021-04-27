@@ -1,5 +1,9 @@
-
-; Gets the OAM index to be used, deletes when off screen, etc.
+;; Name: ExtendedGetDrawInfo
+;; Author: Unspecified at the time of writing
+;; Input:  None
+;; Output: None
+;; Clobbers: $00, $01, $02
+;; Description: Gets the OAM index, sets all the offscreen values for extended sprites, hides the sprite when necessary and automatically kills it when offscreen.
 
 
 	LDA.l .OAMPtr,x

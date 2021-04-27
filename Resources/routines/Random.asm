@@ -1,6 +1,10 @@
-; Ranged pseudorandom number generation.
-; Input: A = max value
-; Output: A = random number in the interval [0, A]
+;; Name: Random
+;; Author: Unspecified at the time of writing
+;; Input: A, max value that the random number can have
+;; Output: A, random value
+;; Clobbers: None
+;; Description: Gets a random value between [0, A]
+
  
     PHX : PHP
     SEP #$30

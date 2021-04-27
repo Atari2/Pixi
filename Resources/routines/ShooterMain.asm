@@ -1,12 +1,13 @@
-;THIS ROUTINE SHOULD ONLY BE CALLED BY A SHOOTER!!!
-;Routine to check if a shooter should fire or not.
-;Checks if the shooter is offscreen and if the timer has run out and sets it if so.
-;
-;Input:  A   = timer value (what the timer should be set to if needed)
-;			C   = Carry Set = Check if Mario is next to the shooter (Carry clear = ignore Mario)
-;
-;Output: Y   = index for sprite create (#$FF means no sprite spawned)
-;        C   = Carry Set = don't shoot (return), Carry Clear = shoot (generate sprite)
+;; Name: ShooterMain
+;; Author: Unspecified at the time of writing 
+;; Input: A = timer value (what the timer should be set to if needed)
+;;        Carry Set = Check if Mario is next to the shooter (Carry clear = ignore Mario)
+;; Output: Y   = index for the spawned sprite (#$FF means no sprite spawned)
+;;         C   = Carry Set = don't shoot (return), Carry Clear = shoot (generate sprite)
+;; Clobbers: None
+;; Description:  THIS ROUTINE SHOULD ONLY BE CALLED BY A SHOOTER!!!
+;;               Routine to check if a shooter should fire or not.
+;;               Checks if the shooter is offscreen and if the timer has run out and sets it if so.
 
 	XBA							; 
 	LDA !shoot_timer,x      ; \ RETURN if it's not time to generate

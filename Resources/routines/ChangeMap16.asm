@@ -1,23 +1,14 @@
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-; change_map16 - Optimized version
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-; input:
-; $98-$99 block position Y
-; $9A-$9B block position X
-; $1933   layer
-;
-; Usage:
-; REP #$20
-; LDA #!block_number
-; %change_map16()
-;
-; by Akaginite
-;
-; For compatibility reasons, input was changed from X to A.
-; Return SEC = didn't work, CLC = did work
+;; Name: ChangeMap16
+;; Author: Akaginite, slightly modified by Tattletale
+;; Input: A = block number, 16 bit
+;;        $98-$99 = block position Y
+;;        $9A-$9B = block position X
+;;        $1933   = layer
+;; Output: Carry set on failure, clear on success
+;; Clobbers: $00-$0F
+;; Description: Chnages a block to another map16 tile
 
-; Slightly modified by Tattletale
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 	PHX
 	PHP
 	REP #$10

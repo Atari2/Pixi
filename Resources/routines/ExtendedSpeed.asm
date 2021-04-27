@@ -1,9 +1,14 @@
-
-;Input:  A   = type of speed update
-;              0 ... x+y with gravity
-;              1 ... x+y without gravity
-;              2 ... x only
-;              3 ... y only
+;; Name: ExtendedSpeed
+;; Author: Unspecified at the time of writing
+;; Input:  A   = type of speed update
+;;              Valid values:
+;;              0 -> x+y with gravity
+;;              1 -> x+y without gravity
+;;              2 -> x only
+;;              3 -> y only
+;; Output: None
+;; Clobbers: None
+;; Description: Updates the X/Y position of an extended sprites with its speed using the vanilla routine
 
    BEQ .SpriteSpd
    DEC : BEQ .SpriteSpdNoGravity

@@ -1,10 +1,10 @@
-;Routine that gets the x distance when given an angle and a radius. For sprites
-;That move in circles. 
-
-;Input:  $04 = angle (16 bit) actually only 9 bit are used 000-1FF = 0°-359°
-;        $06 = radius (8 bit)
-;
-;Output: $07 = X displacement (16 bit)
+;; Name: CircleX
+;; Author:  Unspecified at the time of writing
+;; Input:  $04 = angle (16 bit) actually only 9 bit are used 000-1FF = 0°-359°
+;;         $06 = radius (8 bit);
+;; Output: $07 = X displacement (16 bit)
+;; Clobbers: None
+;; Description: Routine that gets the x distance when given an angle and a radius For sprites that move in circles 
 
 	phx
 	lda $04

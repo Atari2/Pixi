@@ -1,14 +1,9 @@
-;; CapeContact:
-;;    Checks for contact between the current sprite and the player's cape.
-;;	  Taken from GIEPY's routines.
-;; Input:
-;;    X: Sprite index
-;;
-;; Output:
-;;    Carry: Set if there is contact
-;;
-;; Clobbers: A, $00-$0C, $0F
-;;
+;; Name: CapeContact
+;; Author: Unspecified, taken from GIEPY's routines
+;; Input: X = Sprite index
+;; Output: Carry = Set if there is contact
+;; Clobbers:  A, $00-$0C, $0F
+;; Description: Checks for contact between the sprite loaded in slot X and the player's cape
 
 .CapeContact
     LDA $13E8|!addr                ; If the cape is not spinning, return.

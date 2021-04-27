@@ -1,19 +1,14 @@
-;; FireballContact:
-;;    Checks for contact between the current sprite and a player fireball.
-;;	  Taken from GIEPY's routines.
-;;    The index returned by this routine is an index to the last two extended
-;;    sprites. You can add 8 to it and use it to index the extended sprite
-;;    tables normally. Alternatively, you can add 8 to the tables when using
-;;    them.
-;;
-;; Input:
-;;    X: Sprite index
-;;
-;; Output:
-;;    Y: Index of the fireball or $FF if there is no contact.
-;;    Carry: Set if there is contact with any fireball.
-;;
+;; Name: FireballContact
+;; Author: Unspecified, taken from GIEPY
+;; Input: X as the sprite index
+;; Output: Y as index of the fireball or $FF if there is no contact.
+;;         Carry set if there is contact with any fireball, clear otherwise
 ;; Clobbers: A
+;; Description: Checks for contact between the current sprite and a player fireball.
+;;              The index returned by this routine is an index to the last two extended
+;;              sprites. You can add 8 to it and use it to index the extended sprite
+;;              tables normally. Alternatively, you can add 8 to the tables when using
+;;              them.
 
 .FireballContact
     PHX                             ; Preserve X.

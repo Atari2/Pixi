@@ -1,17 +1,15 @@
-;Routine that spawns a normal or custom sprite with initial speed at the position (+offset)
-;of the calling sprite and returns the sprite index in Y
-
-;Input:  A   = number of sprite to spawn
-;        C   = Carry/Custom (CLC = CLear Custom, SEC = SEt Custom :P)
-;        $00 = x offset  \
-;        $01 = y offset  | you could also just ignore these and set them later
-;        $02 = x speed   | using the returned Y.
-;        $03 = y speed   /
-;
-;		 if x and y are negative, those will be subtracted instead of added
-;
-;Output: Y   = index to spawned sprite (#$FF means no sprite spawned)
-;        C   = Carry Set = spawn failed, Carry Clear = spawn successful.
+;; Name: SpawnSprite
+;; Author: Unspecified at the time of writing; 
+;; Input:  A   = number of sprite to spawn
+;;         C   = Carry/Custom (CLC = CLear Custom, SEC = SEt Custom :P)
+;;         $00 = x offset  \
+;;         $01 = y offset  | you could also just ignore these and set them later
+;;         $02 = x speed   | using the returned Y.
+;;         $03 = y speed   /; 
+;; Output: Y   = index to spawned sprite (#$FF means no sprite spawned)
+;;         C   = Carry Set = spawn failed, Carry Clear = spawn successful.
+;; Clobbers: None
+;; Description: Routine that spawns a normal or custom sprite with initial speed at the position (+offset) of the calling sprite and returns the sprite index in Y
 
 	PHX
 	XBA

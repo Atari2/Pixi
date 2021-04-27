@@ -1,11 +1,9 @@
-;; LoseYoshi:
-;;    Taken from GIEPY's routines.
-;;    If the player is riding Yoshi, this routine will make him run away as if
-;;    hit by an enemy.
-;; No input
-;; Preserves:
-;;    A (8-bit)
-;;    X/Y (8-bit)
+;; Name: LoseYoshi
+;; Author: Unspecified, taken from GIEPY's routines.
+;; Input: None
+;; Output: None
+;; Clobbers: None
+;; Description: If the player is riding Yoshi, this routine will make him run away as if hit by an enemy.
 
 .LoseYoshi
     PHA

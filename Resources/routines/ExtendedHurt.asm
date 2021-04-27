@@ -1,4 +1,10 @@
-;; extended sprite -> mario interaction.
+;; Name: ExtendedHurt
+;; Author:  Unspecified at the time of writing
+;; Input:   None
+;; Output:  None
+;; Clobbers: $00-$0F
+;; Description: Uses the vanilla routine at $02A469 to apply interaction between mario and the extended sprite, hurting the player.
+
 	LDA $171F|!Base2,x
 	CLC
 	ADC #$03

@@ -1,10 +1,11 @@
-;; Extended Sprite cape clipping routine
-;; input:
-;; $00 = X clipping offsets
-;; $01 = Width
-;; $02 = Y clipping offsets
-;; $03 = Height
-;; returns: carry set if contact, clear if not
+;; Name: ExtendedCapeClipping
+;; Author: Atari2.0
+;; Input: $00, $02 = X, Y clipping offsets
+;;        $01, $03 = Width, Height
+;; Output: Carry set if contact, clear if not
+;; Clobbers: $04-$0B
+;; Description: Routine that check wether a certain clipping box of an extended sprite is in contact with mario's cape
+
 .ExtendedCapeClipping
 JSR .ClippingExt
 JSR .MarioInteractVal

@@ -1,15 +1,15 @@
-;Routine that spawns an extended sprite with initial speed at the position (+offset)
-;of the calling sprite and returns the sprite index in Y
-;For a list of extended sprites see here: http://www.smwiki.net/wiki/RAM_Address/$7E:170B
-
-;Input:  A   = number
-;        $00 = x offset  \
-;        $01 = y offset  | you could also just ignore these and set them later
-;        $02 = x speed   | using the returned Y.
-;        $03 = y speed   /
-;
-;Output: Y   = index to extended sprite (#$FF means no sprite spawned)
-;        C   = Carry Set = spawn failed, Carry Clear = spawn successful.
+;; Name: SpawnExtended
+;; Author: Unspecified at the time of writing
+;; Input:  A   = number
+;;         $00 = x offset  \
+;;         $01 = y offset  | you could also just ignore these and set them later
+;;         $02 = x speed   | using the returned Y.
+;;         $03 = y speed   /
+;; Output: Y   = index to extended sprite (#$FF means no sprite spawned)
+;;         C   = Carry Set = spawn failed, Carry Clear = spawn successful.
+;; Clobbers: None
+;; Description: Routine that spawns an extended sprite with initial speed at the position (+offset) of the calling sprite and returns the sprite index in Y
+;;              For a list of extended sprites see here: http://www.smwiki.net/wiki/RAM_Address/$7E:170B
 
 	XBA						; Save A
 	LDA !15A0,x				; \

@@ -1,23 +1,12 @@
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-; GetBlock - SA-1 Hybrid version
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-; this routine will get Map16 value
-; If position is invalid range, will return 0xFFFF.
-;
-; input:
-; $98-$99 block position Y
-; $9A-$9B block position X
-; $1933   layer
-;
-; output:
-; A Map16 lowbyte (or all 16bits in 16bit mode)
-; Y Map16 highbyte
-;
-; by Akaginite
-;
-; It used to return FF but it also fucked with N and Z lol, that's fixed now
-; Slightly modified by Tattletale
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Name: GetMap16
+;; Author: Akaginite, slightly modified by Tattletale
+;; Input: $98-$99 block position Y
+;;        $9A-$9B block position X
+;;        $1933   layer
+;; Output: Returns 16 bit value of the map16. 0xFFFF on failure (invalid position range)
+;; Clobbers: $00-$0F
+;; Description: Gets the map16 value at a specified position
+
 	PHX
 	PHP
 	REP #$10

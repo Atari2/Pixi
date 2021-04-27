@@ -1,16 +1,10 @@
-;; CheckForContactAlternate:
-;; Routine from imamelia
-;;    Custom contact check routine. Checks for contact between whatever two
-;;    things were set up previously.
-;;
-;; Input:
-;;    $00-$07: Clipping 1
-;;    $08-$0F: Clipping 2
-;;
-;; Output:
-;;    Carry: Contact flag
-;;
-;; Clobbers: A
+;; Name: CheckForContactAlternate
+;; Author:  imamelia
+;; Input:   $00-$07 clipping values for first entity
+;;          $08-$0F clipping values for second entity
+;; Output:  Carry set if in contact, otherwise clear
+;; Clobbers:    A
+;; Description: Checks for contact between 2 clipping boxes
 
 .CheckForContactAlternate
     REP #$20

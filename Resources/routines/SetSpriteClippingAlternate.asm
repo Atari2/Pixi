@@ -1,20 +1,13 @@
-;; SetSpriteClippingAlternate:
-;;    Routine from imamelia
-;;    Custom sprite clipping routine. Sets up a sprite's interaction field with
-;;    16-bit values as custom clipping 2.
-;;
-;; Input:
-;;    X: Sprite index
-;;    $08-$09: X displacement
-;;    $0A-$0B: Y displacement
-;;    $0C-$0D: Width
-;;    $0E-$0F: Height
-;;
-;; Output:
-;;    $08-0F: Clipping values
-;;
+;; Name: SetSpriteClippingAlternate
+;; Author: imamelia
+;; Input: X: Sprite index
+;;        $08-$09: X displacement
+;;        $0A-$0B: Y displacement
+;;        $0C-$0D: Width
+;;        $0E-$0F: Height
+;; Output:  $08-0F: Clipping values
 ;; Clobbers: A
-;;
+;; Description: Custom sprite clipping routine. Sets up a sprite's interaction field with 16-bit values as custom clipping 2
 
 .SetSpriteClippingAlternate
     LDA !sprite_x_high,x

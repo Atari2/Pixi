@@ -1,7 +1,9 @@
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-; Sub_Off_Screen_XA
-; input A for which sub_off_screen to use (usually 0). Only last 3 bits are used.
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Name: SubOffScreen
+;; Author: akaginite, Blind Devil
+;; Input: A for which SubOffScreen to use (usually 0). Only last 3 bits are used.
+;; Output: None
+;; Clobbers: $00-$03
+;; Description: Checks if the sprite is offscreen and sets flags accordingly
 
 			AND #$07
 			ASL A

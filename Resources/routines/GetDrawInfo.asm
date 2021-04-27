@@ -1,14 +1,11 @@
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-; This is a helper for the graphics routine.  It sets off screen flags, and sets up
-; variables.
-;
-; Output:
-;	Y = index to sprite OAM ($300)
-;	$00 = sprite x position relative to screen boarder
-;	$01 = sprite y position relative to screen boarder  
-;
-; It is adapted from the subroutine at $03B760
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Name: GetDrawInfo
+;; Author: Akaginite
+;; Input: None
+;; Output: Y = index to sprite OAM ($300)
+;;         $00 = sprite x position relative to screen border
+;;         $01 = sprite y position relative to screen border  
+;; Clobbers: None
+;; Description: This is a helper for the graphics routine.  It sets off screen flags, and sets up variables to be used in the graphics routine, adapted frokm $03B760.
 
    STZ !186C,x
    LDA !14E0,x

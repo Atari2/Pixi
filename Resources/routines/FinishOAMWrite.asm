@@ -1,6 +1,11 @@
-        ;; Optimized finishOAMWrite - routine by Akaginite
-        ;; Input: A = number of tiles to draw - 1
-        ;; Input: Y = size, $00 -> 8x8 tiles, $02 -> 16x16 tiles, $FF -> manually set the size
+;; Name: FinishOAMWrite
+;; Author:  Akaginite
+;; Input:   A = number of tiles to draw - 1
+;;          Y = size, $00 -> 8x8 tiles, $02 -> 16x16 tiles, $FF -> manually set the size
+;; Output: None
+;; Clobbers: $00-$0F
+;; Description: Finish OAM write routine, optimized from the vanilla one.
+
         STY $0B
 		STA $08
 		LDA !D8,x
