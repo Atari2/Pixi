@@ -49,13 +49,22 @@ struct Tile {
 	~Tile() = default;
 };
 
+struct GfxInfo {
+	int gfx_files[4] = { 0x7F, 0x7F, 0x7F, 0x7F };
+};
+
+enum class DisplayType {
+	XYPosition,
+	ExtensionByte
+};
+
 struct Display {
 	std::string description{};
 	std::vector<Tile> tiles{};
 	bool extra_bit = false;
-	int x = 0;
-	int y = 0;
-
+	int x_or_index = 0;
+	int y_or_value = 0;
+	std::vector<GfxInfo> gfx_files{};
 	~Display() = default;
 };
 
@@ -152,6 +161,7 @@ struct Sprite {
 	std::vector<Display> displays{};
 	std::vector<Collection> collections{};
 
+	DisplayType display_type = DisplayType::XYPosition;
 	int sprite_type = 0;
 	Sprite() = default;
 	Sprite(bool inv) : invalid(inv) {};

@@ -332,15 +332,45 @@ void SpritesData::serialize_subfiles(const PixiConfig& cfg, ByteArray<uint8_t, 0
 					map.emplace_back(block);
 					});
 				for (auto& dis : spr.displays) {
-					int ref = dis.y * 0x1000 + dis.x * 0x100 + 0x20 + (dis.extra_bit ? 0x10 : 0);
-					if (dis.description.empty()) {
-						fmt::print(ssc, "{:02X} {:04X} {}\n", i, ref, spr.asm_file);
+					int ref = 0;
+					if (spr.display_type == DisplayType::ExtensionByte) {
+						ref = 0x20 + (dis.extra_bit ? 0x10 : 0);
+						if (dis.description.empty()) {
+							fmt::print(ssc, "{:02X} {:1X}{:02X}{:02X} {}\n", i, dis.x_or_index, dis.y_or_value, ref, spr.asm_file);
+						}
+						else {
+							fmt::print(ssc, "{:02X} {:1X}{:02X}{:02X} {}\n", i, dis.x_or_index, dis.y_or_value, ref, dis.description);
+						}
 					}
 					else {
-						fmt::print(ssc, "{:02X} {:04X} {}\n", i, ref, dis.description);
+						ref = dis.y_or_value * 0x1000 + dis.x_or_index * 0x100 + 0x20 + (dis.extra_bit ? 0x10 : 0);
+						if (dis.description.empty()) {
+							fmt::print(ssc, "{:02X} {:04X} {}\n", i, ref, spr.asm_file);
+						}
+						else {
+							fmt::print(ssc, "{:02X} {:04X} {}\n", i, ref, dis.description);
+						}
 					}
 
-					fmt::print(ssc, "{:02X} {:04X}", i, ref + 2);
+					if (dis.gfx_files.size() > 0) {
+						fmt::print(ssc, "{:02X} 8 ", i);
+						for (auto& gfx : dis.gfx_files) {
+							fmt::print(ssc, "{:X},{:X},{:X},{:X} ",
+								gfx.gfx_files[0],
+								gfx.gfx_files[1],
+								gfx.gfx_files[2],
+								gfx.gfx_files[3]);
+						}
+						fmt::print(ssc, "\n");
+					}
+
+					if (spr.display_type == DisplayType::ExtensionByte) {
+						fmt::print(ssc, "{:02X} {:1X}{:02X}{:02X}", i, dis.x_or_index, dis.y_or_value, ref + 2);
+					}
+					else {
+						fmt::print(ssc, "{:02X} {:04X}", i, ref + 2);
+					}
+
 					for (auto& tile : dis.tiles) {
 						if (!tile.text.empty()) {
 							fmt::print(ssc, " 0,0,*{}*", tile.text);

@@ -90,7 +90,14 @@ void Sprite::print(FILE* stream)
 		fmt::print(stream, "Displays:\n");
 	}
 	for (const auto& display : displays) {
-		fmt::print(stream, "\tX: {}, Y: {}, Extra-Bit: {}\n", display.x, display.y, display.extra_bit);
+		if (display_type == DisplayType::XYPosition)
+			fmt::print(stream, "\tX: {}, Y: {}, Extra-Bit: {}\n", display.x_or_index, display.y_or_value, display.extra_bit);
+		else
+			fmt::print(stream, "\tIndex: {}, Value: {}, Extra-Bit: {}\n", display.x_or_index, display.y_or_value, display.extra_bit);
+		for (auto& gfx : display.gfx_files) {
+			fmt::print(stream, "\tGFX Files: SP1 = {:X}, SP2 = {:X}, SP3 = {:X}, SP4 = {:X}\n",
+				gfx.gfx_files[0], gfx.gfx_files[1], gfx.gfx_files[2], gfx.gfx_files[3]);
+		}
 		fmt::print(stream, "\tDescription: {}\n", display.description);
 		for (const auto& tile : display.tiles) {
 			if (tile.text.empty()) {
@@ -183,14 +190,50 @@ void Sprite::from_json(PixiConfig& cfg)
 	}
 
 	displays.reserve(j.at("Displays").size());
+	auto disp_type = j.at("DisplayType").get<std::string>();
+	if (disp_type == "XY") {
+		display_type = DisplayType::XYPosition;
+	}
+	else if (disp_type == "ExByte") {
+		display_type = DisplayType::ExtensionByte;
+	}
+	else {
+		ErrorState::pixi_error("Unknown type of display {}", disp_type);
+	}
 	for (const auto& jdisp : j.at("Displays")) {
 		Display dis{};
 		dis.description = jdisp.at("Description");
-		dis.x = jdisp.at("X");
-		dis.y = jdisp.at("Y");
-		dis.x = std::clamp(dis.x, 0, 0x0F);
-		dis.y = std::clamp(dis.y, 0, 0x0F);
-		dis.extra_bit = jdisp.at("ExtraBit");
+		if (display_type == DisplayType::ExtensionByte) {
+			dis.x_or_index = jdisp.at("Index");
+			dis.x_or_index = std::clamp(dis.x_or_index, 0, (dis.extra_bit ? extra_byte_count : byte_count)) + 3;
+			dis.y_or_value = jdisp.at("Value");
+		}
+		else {
+			dis.x_or_index = jdisp.at("X");
+			dis.y_or_value = jdisp.at("Y");
+			dis.x_or_index = std::clamp(dis.x_or_index, 0, 0x0F);
+			dis.y_or_value = std::clamp(dis.y_or_value, 0, 0x0F);
+			dis.extra_bit = jdisp.at("ExtraBit");
+		}
+
+		auto gfxinfo = jdisp.find("GFXInfo");
+		if (gfxinfo != jdisp.end()) {
+			auto gfxarray = *gfxinfo;
+			dis.gfx_files.reserve(gfxarray.size());
+			for (auto& item : gfxarray) {
+				GfxInfo info{};
+				bool separate = item.at("Separate");
+				for (int gfx = 0; gfx < 4; gfx++) {
+					try {
+						info.gfx_files[gfx] = item.at(std::to_string(gfx)).get<int>() | (separate ? 0x8000 : 0);
+					}
+					catch (const std::out_of_range& err) {
+						info.gfx_files[gfx] = 0x7F;
+					}
+				}
+			}
+		}
+
 
 		if (jdisp.at("UseText")) {
 			dis.tiles.push_back({});
