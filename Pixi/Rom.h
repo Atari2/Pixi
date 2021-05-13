@@ -19,6 +19,19 @@ class Rom {
 	using s = std::numeric_limits<size_t>;
 	inline static constexpr size_t MAX_ROM_SIZE = 16 * 1024 * 1024;
 	inline static constexpr size_t sa1banks[8] = { 0 << 20, 1 << 20, s::max(), s::max(), 2 << 20, 3 << 20, s::max(), s::max() };
+	inline static constexpr std::string_view sprite_asm_patch = R"(
+namespace nested on
+incsrc "!{SA1DEF}sa1def.asm"
+incsrc shared.asm
+incsrc "!{HEADER}_header.asm"
+freecode cleaned
+warnings push
+warnings disable w1005
+SPRITE_ENTRY_!NUMBER:
+    incsrc "!SPRITE"
+warnings pull
+namespace nested off
+)";
 	std::string m_name;
 	int m_size = 0;
 	ByteArray<uint8_t, MAX_ROM_SIZE> m_data;
@@ -27,6 +40,7 @@ class Rom {
 	SpriteMemoryFiles m_main_memory_files{};
 	MemoryFile m_shared_patch{};
 	MemoryFile m_config_patch{};
+	MemoryFile m_sprite_patch{ Sprite::TEMP_SPR_FILE };
 public:
 	Rom() = default;
 	Rom(std::string romname);
@@ -69,7 +83,7 @@ public:
 
 	// patches a single memory file contaning the wrapper around a sprite
 	// also includes shared.asm and config.asm
-	bool patch_simple_sprite(MemoryFile& sprite_patch, PixiConfig& cfg, std::string_view spr_name);
+	bool patch_simple_sprite(Sprite& sprite, PixiConfig& cfg, std::string_view spr_name);
 
 	// calls patch_simple_main appending the dir before the filename
 	bool patch_main(const std::string& dir, const std::string& file, PixiConfig& cfg);

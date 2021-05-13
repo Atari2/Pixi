@@ -5,6 +5,12 @@
 #include "MemoryFile.h"
 
 class StructParams {
+public:
+	constexpr inline static std::string_view define_sa1def = "SA1DEF";
+	constexpr inline static std::string_view define_sprno = "NUMBER";
+	constexpr inline static std::string_view define_header = "HEADER";
+	constexpr inline static std::string_view define_sprite = "SPRITE";
+private:
 	constexpr inline static std::string_view w1005 = "W1005";
 	constexpr inline static std::string_view w1001 = "W1001";
 	constexpr inline static struct warnsetting setting[2] = {
@@ -21,6 +27,7 @@ class StructParams {
 	size_t n_files;
 	std::vector<std::pair<const void*, size_t>> file_data;
 	std::vector<std::string_view> file_paths;
+	std::vector<definedata> m_defines;
 
 	void setup_base(uint8_t* rom_data, size_t max_rom_size, int& rom_size) {
 		params = new struct patchparams;
@@ -34,8 +41,8 @@ class StructParams {
 
 		params->should_reset = true;
 
-		params->additional_defines = nullptr;
-		params->additional_define_count = 0;
+		params->additional_defines = m_defines.empty() ? nullptr : m_defines.data();
+		params->additional_define_count = m_defines.size();
 
 		params->stdincludesfile = nullptr;
 		params->stddefinesfile = nullptr;
@@ -73,6 +80,11 @@ public:
 		file_data.reserve(n_files);
 		file_paths.reserve(n_files);
 		append(files...);
+	}
+
+	void add_defines(std::initializer_list<definedata> defines) {
+		m_defines.reserve(defines.size());
+		m_defines.insert(m_defines.cbegin(), defines.begin(), defines.end());
 	}
 
 	std::string_view PatchLoc() {

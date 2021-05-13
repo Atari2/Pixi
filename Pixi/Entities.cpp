@@ -190,7 +190,8 @@ void Sprite::from_json(PixiConfig& cfg)
 	}
 
 	displays.reserve(j.at("Displays").size());
-	auto disp_type = j.at("DisplayType").get<std::string>();
+	auto disp_present = j.find("DisplayType");
+	auto disp_type = disp_present == j.end() ? "XY" : j.at("DisplayType").get<std::string>();
 	if (disp_type == "XY") {
 		display_type = DisplayType::XYPosition;
 	}

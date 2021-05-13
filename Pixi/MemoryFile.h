@@ -38,6 +38,12 @@ public:
 		fmt::format_to(Inserter(), string, fmt_args...);
 	}
 
+	void insertChar(std::string_view string) {
+		type = DataType::Char;
+		m_data.reserve(string.length());
+		m_data.insert(m_data.cbegin(), string.begin(), string.end());
+	}
+
 	void insertBytes(uint8_t* data, size_t length) {
 		type = DataType::Byte;
 		m_data.reserve(length);

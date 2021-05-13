@@ -16,6 +16,7 @@ Rom::Rom(std::string romname) : m_name(romname)
 	else {
 		m_mapper = MapperType::LoRom;
 	}
+	m_sprite_patch.insertChar(sprite_asm_patch);
 	DEBUGFMTMSG("Correctly instantiated rom \"{}\" with mapper {} and header offset {:X}\n", m_name, MapperToString(m_mapper), m_header_offset);
 }
 
@@ -368,10 +369,20 @@ SpriteMemoryFiles& Rom::main_memory_files() {
 	return m_main_memory_files;
 }
 
-bool Rom::patch_simple_sprite(MemoryFile& sprite_patch, PixiConfig& cfg, std::string_view spr_name)
+bool Rom::patch_simple_sprite(Sprite& spr, PixiConfig& cfg, std::string_view spr_name)
 {
+	std::string escapedDir = escapeDefines(spr.directory);
+	std::string escapedAsmFile = escapeDefines(spr.asm_file);
+	std::string escapedAsmDir = escapeDefines(cfg.AsmDir);
+	std::string number = std::to_string(spr.number);
 	StructParams paramsWrap(m_config_patch, m_shared_patch);
-	auto params = paramsWrap.construct(sprite_patch, m_data.ptr_at(m_header_offset), MAX_ROM_SIZE, size());
+	paramsWrap.add_defines({ 
+		{StructParams::define_sa1def.data(),  escapedAsmDir.data() },
+		{StructParams::define_header.data(), escapedDir.data() },
+		{StructParams::define_sprno.data(), number.data() },
+		{StructParams::define_sprite.data(), escapedAsmFile.data() }
+	});
+	auto params = paramsWrap.construct(m_sprite_patch, m_data.ptr_at(m_header_offset), MAX_ROM_SIZE, size());
 	if (!asar_patch_ex(params)) {
 		DEBUGMSG("Failure. Try fetch errors:\n");
 		int error_count;
@@ -396,21 +407,8 @@ bool Rom::patch_main(const std::string& dir, const std::string& file, PixiConfig
 }
 
 bool Rom::patch_sprite(Sprite& spr, const std::vector<std::string>& extraDefines, PixiConfig& cfg) {
-	std::string escapedDir = escapeDefines(spr.directory);
-	std::string escapedAsmFile = escapeDefines(spr.asm_file);
-	std::string escapedAsmDir = escapeDefines(cfg.AsmDir);
-	MemoryFile sprite_patch{ Sprite::TEMP_SPR_FILE };
-	sprite_patch.insertString("namespace nested on\n");
-	sprite_patch.insertString("incsrc \"{}sa1def.asm\"\n", escapedAsmDir);
-	addIncSrcToFile(sprite_patch, extraDefines);
-	sprite_patch.insertString("incsrc \"shared.asm\"\n");
-	sprite_patch.insertString("incsrc \"{}_header.asm\"\n", escapedDir);
-	sprite_patch.insertString("freecode cleaned\n");
-	sprite_patch.insertString("SPRITE_ENTRY_{}:\n", spr.number);
-	sprite_patch.insertString("\tincsrc \"{}\"\n", escapedAsmFile);
-	sprite_patch.insertString("namespace nested off\n");
 
-	bool retval = patch_simple_sprite(sprite_patch, cfg, spr.asm_file);
+	bool retval = patch_simple_sprite(spr, cfg, spr.asm_file);
 	std::map<std::string, int> ptr_map = {
 		std::pair<std::string, int>("init", 0x018021),
 		std::pair<std::string, int>("main", 0x018021),
