@@ -2,7 +2,7 @@ install:
   - git submodule update --init --recursive
 
 build_script:
-  - ps: .\build_script.ps1
+  - cmd: .\build_script.bat
 
 after_build:
   - ps: py .\zip_script.py
